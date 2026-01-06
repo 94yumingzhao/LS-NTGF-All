@@ -1,0 +1,46 @@
+{
+    "version": 7,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 24
+    },
+    "configurePresets": [
+        {
+            "name": "vs2022-debug",
+            "displayName": "Debug - MSVC 2022 x64",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/build/debug",
+            "cacheVariables": {
+                "CPLEX_DIR": "D:/CPLEX",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        },
+        {
+            "name": "vs2022-release",
+            "inherits": "vs2022-debug",
+            "displayName": "Release - MSVC 2022 x64",
+            "binaryDir": "${sourceDir}/build/release",
+            "cacheVariables": {
+                "CPLEX_DIR": "D:/CPLEX",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDLL",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "build-debug",
+            "displayName": "Build Debug",
+            "configurePreset": "vs2022-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "build-release",
+            "displayName": "Build Release",
+            "configurePreset": "vs2022-release",
+            "configuration": "Release"
+        }
+    ]
+}
