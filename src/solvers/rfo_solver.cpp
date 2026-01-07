@@ -249,7 +249,10 @@ static bool SolveRFSubproblem(
 
         IloCplex cplex(model);
         cplex.setParam(IloCplex::TiLim, kRFSubproblemTimeLimit);
-        cplex.setParam(IloCplex::Threads, 0);
+        cplex.setParam(IloCplex::Threads, values.cplex_threads);
+        cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
+        cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
+        cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
         // CPLEX 日志输出到双向流
         if (g_logger) {
@@ -682,7 +685,10 @@ static bool SolveFOSubproblem(
 
         IloCplex cplex(model);
         cplex.setParam(IloCplex::TiLim, kFOSubproblemTimeLimit);
-        cplex.setParam(IloCplex::Threads, 0);
+        cplex.setParam(IloCplex::Threads, values.cplex_threads);
+        cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
+        cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
+        cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
         // CPLEX 日志输出到双向流
         if (g_logger) {
@@ -981,7 +987,10 @@ static bool SolveFOFinal(FOState& fo_state, AllValues& values, AllLists& lists,
 
         IloCplex cplex(model);
         cplex.setParam(IloCplex::TiLim, kRFSubproblemTimeLimit);
-        cplex.setParam(IloCplex::Threads, 0);
+        cplex.setParam(IloCplex::Threads, values.cplex_threads);
+        cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
+        cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
+        cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
         // CPLEX 日志输出到双向流
         if (g_logger) {

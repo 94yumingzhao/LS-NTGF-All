@@ -56,6 +56,10 @@ struct CommandLineArgs {
     double big_order_threshold = 1000.0;
     bool enable_merge = true;   // 是否启用订单合并
     bool show_help = false;
+    // CPLEX parameters
+    string cplex_workdir = "D:\\CPLEX_Temp";
+    int cplex_workmem = 4096;
+    int cplex_threads = 0;
 };
 
 // ============================================================================
@@ -76,6 +80,9 @@ void PrintUsage(const char* program) {
     cout << "  --b-penalty <int>       Backorder penalty (default: 100)\n";
     cout << "  --threshold <double>    Big order threshold (default: 1000)\n";
     cout << "  --no-merge              Disable order merging\n";
+    cout << "  --cplex-workdir <path>  CPLEX work directory (default: D:\\CPLEX_Temp)\n";
+    cout << "  --cplex-workmem <MB>    CPLEX work memory limit (default: 4096)\n";
+    cout << "  --cplex-threads <num>   CPLEX thread count, 0=auto (default: 0)\n";
     cout << "  -h, --help              Show this help message\n";
     cout << "\nExamples:\n";
     cout << "  " << program << " --algo=RF data.csv\n";
@@ -122,6 +129,12 @@ bool ParseArgs(int argc, char* argv[], CommandLineArgs& args) {
             args.big_order_threshold = atof(argv[++i]);
         } else if (arg == "--no-merge") {
             args.enable_merge = false;
+        } else if (arg == "--cplex-workdir" && i + 1 < argc) {
+            args.cplex_workdir = argv[++i];
+        } else if (arg == "--cplex-workmem" && i + 1 < argc) {
+            args.cplex_workmem = atoi(argv[++i]);
+        } else if (arg == "--cplex-threads" && i + 1 < argc) {
+            args.cplex_threads = atoi(argv[++i]);
         } else if (arg[0] != '-' && args.input_file.empty()) {
             // 位置参数作为输入文件
             args.input_file = arg;
@@ -257,6 +270,9 @@ int main(int argc, char* argv[]) {
     values.u_penalty = args.u_penalty;
     values.b_penalty = args.b_penalty;
     values.big_order_threshold = args.big_order_threshold;
+    values.cplex_workdir = args.cplex_workdir;
+    values.cplex_workmem = args.cplex_workmem;
+    values.cplex_threads = args.cplex_threads;
 
     clock_t case_start = clock();
 

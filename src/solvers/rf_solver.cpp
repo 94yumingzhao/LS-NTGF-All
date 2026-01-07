@@ -269,7 +269,10 @@ static bool SolveRFSubproblem(
         // 配置并求解
         IloCplex cplex(model);
         cplex.setParam(IloCplex::TiLim, kRFSubproblemTimeLimit);
-        cplex.setParam(IloCplex::Threads, 0);  // 自动选择线程数
+        cplex.setParam(IloCplex::Threads, values.cplex_threads);
+        cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
+        cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
+        cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
         // 设置 CPLEX 输出到日志系统（同时输出到终端和文件）
         if (g_logger) {

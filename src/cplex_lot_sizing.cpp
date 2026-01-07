@@ -193,10 +193,10 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
         // 求解器配置
         IloCplex cplex(model);
         cplex.setParam(IloCplex::TiLim, values.cpx_runtime_limit);
-        cplex.setParam(IloCplex::Threads, 0);
+        cplex.setParam(IloCplex::Threads, values.cplex_threads);
         cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
-        cplex.setParam(IloCplex::Param::WorkDir, "D:\\CPLEX_Temp");
-        cplex.setParam(IloCplex::Param::WorkMem, 4096);
+        cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
+        cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
         cout << "[PP-GCB] 开始求解完整模型...\n";
         bool has_solution = cplex.solve();

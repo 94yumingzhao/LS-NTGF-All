@@ -423,7 +423,10 @@ void SolveBigOrder(AllValues& values, AllLists& lists) {
 
         IloCplex cplex(model);
         cplex.setParam(IloCplex::TiLim, values.cpx_runtime_limit);
-        cplex.setParam(IloCplex::Threads, 0);
+        cplex.setParam(IloCplex::Threads, values.cplex_threads);
+        cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
+        cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
+        cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
         auto start = chrono::steady_clock::now();
         bool solved = cplex.solve();

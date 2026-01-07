@@ -172,6 +172,11 @@ struct AllValues {
     double cpx_runtime_limit = DEFAULT_CPLEX_TIME_LIMIT;
     double big_order_threshold = 1000.0;
 
+    // CPLEX参数
+    std::string cplex_workdir = "D:\\CPLEX_Temp";
+    int cplex_workmem = 4096;
+    int cplex_threads = 0;
+
     // 辅助数据
     vector<int> unmet_penalty_list;
     int original_number_of_items = -1;
