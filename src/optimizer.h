@@ -114,6 +114,67 @@ struct AlgoResult {
     double gap = -1.0;
 };
 
+// 解的质量指标和求解过程统计
+struct SolutionMetrics {
+    // ========== 通用指标 (所有算法) ==========
+    // 成本分解
+    double cost_production = 0.0;      // 生产成本
+    double cost_setup = 0.0;           // 启动成本
+    double cost_inventory = 0.0;       // 库存成本
+    double cost_backorder = 0.0;       // 欠交惩罚
+    double cost_unmet = 0.0;           // 未满足惩罚
+
+    // Setup/Carryover 统计
+    int total_setups = 0;              // 总启动次数
+    int total_carryovers = 0;          // 总跨期次数
+    double saved_setup_cost = 0.0;     // 跨期节省的成本
+
+    // 需求满足情况
+    int unmet_count = 0;               // 未满足订单数
+    double unmet_rate = 0.0;           // 未满足比例
+    double total_backorder = 0.0;      // 总欠交量
+    double total_demand = 0.0;         // 总需求量
+    double on_time_rate = 0.0;         // 按时交付率
+
+    // 产能利用
+    double capacity_util_avg = 0.0;    // 平均产能利用率
+    double capacity_util_max = 0.0;    // 最大产能利用率
+    vector<double> capacity_util_by_period;  // 各周期产能利用率
+
+    // CPLEX 求解器指标
+    long cplex_nodes = 0;              // 探索节点数
+    int cplex_iterations = 0;          // MIP迭代次数
+
+    // ========== RF 算法特有指标 ==========
+    int rf_iterations = 0;             // RF主循环迭代次数
+    int rf_window_expansions = 0;      // 窗口扩展次数
+    int rf_rollbacks = 0;              // 回滚次数
+    int rf_subproblems = 0;            // 求解的子问题数
+    double rf_avg_subproblem_time = 0.0;  // 子问题平均求解时间
+    double rf_final_solve_time = 0.0;  // 最终求解时间
+
+    // ========== RFO 算法特有指标 ==========
+    double rfo_rf_objective = 0.0;     // RF阶段目标值
+    double rfo_rf_time = 0.0;          // RF阶段耗时
+    int rfo_fo_rounds = 0;             // FO优化轮数
+    int rfo_fo_windows_improved = 0;   // FO改进的窗口数
+    double rfo_fo_improvement = 0.0;   // FO改进幅度(绝对值)
+    double rfo_fo_improvement_pct = 0.0;  // FO改进幅度(百分比)
+    double rfo_fo_time = 0.0;          // FO阶段耗时
+    double rfo_final_solve_time = 0.0; // 最终求解时间
+
+    // ========== RR (PP-GCB) 算法特有指标 ==========
+    double rr_step1_objective = 0.0;   // 阶段1目标值(放松产能)
+    int rr_step1_setups = 0;           // 阶段1确定的setup数
+    double rr_step1_time = 0.0;        // 阶段1耗时
+    int rr_step2_carryovers = 0;       // 阶段2发现的carryover数
+    double rr_step2_time = 0.0;        // 阶段2耗时
+    double rr_step3_objective = 0.0;   // 阶段3最终目标值
+    double rr_step3_time = 0.0;        // 阶段3耗时
+    double rr_step3_gap_to_step1 = 0.0;   // Step3与Step1的gap
+    double rr_carryover_utilization = 0.0; // carryover利用率
+};
+
 // RF 算法状态
 struct RFState {
     vector<vector<int>> y_bar;           // 已固定的 y 值 [g][t]
@@ -176,6 +237,14 @@ struct AllValues {
     std::string cplex_workdir = "D:\\CPLEX_Temp";
     int cplex_workmem = 4096;
     int cplex_threads = 0;
+
+    // 输出配置
+    std::string output_dir = "./results";
+    std::string input_file = "";
+    std::string algorithm_name = "";
+
+    // 解的质量指标
+    SolutionMetrics metrics;
 
     // 辅助数据
     vector<int> unmet_penalty_list;
@@ -248,6 +317,23 @@ void ParseCommaSeparatedValues(const string& line, vector<double>& values, int d
 // 数据输入/输出
 // ============================================================================
 void ReadData(AllValues& values, AllLists& lists, const string& path);
+
+// JSON solution output (primary)
+void OutputSolutionJSON(const string& filepath,
+                        const string& algorithm,
+                        const string& input_file,
+                        const AllValues& values,
+                        const AllLists& lists,
+                        IloCplex& cplex,
+                        IloArray<IloNumVarArray>& X,
+                        IloArray<IloNumVarArray>& Y,
+                        IloArray<IloNumVarArray>& L,
+                        IloArray<IloNumVarArray>& I,
+                        IloArray<IloNumVarArray>& B,
+                        IloNumVarArray& U,
+                        const vector<AlgoResult>* steps = nullptr);
+
+// Legacy CSV output (for backward compatibility)
 void OutputDecisionVarsCSV(const string& filename,
                            const AllValues& values,
                            const AllLists& lists,
@@ -260,19 +346,6 @@ void OutputDecisionVarsCSV(const string& filename,
                            IloNumVarArray& U,
                            bool is_step1, bool is_step2, bool is_step3,
                            bool is_big_order, bool is_split_order, int precision);
-void OutputDecisionVarsCSVCompat(const string& filename,
-                                 const AllValues& values,
-                                 const AllLists& lists,
-                                 IloCplex& cplex,
-                                 IloArray<IloNumVarArray>& X,
-                                 IloArray<IloNumVarArray>& Y,
-                                 IloArray<IloNumVarArray>& L,
-                                 IloArray<IloNumVarArray>& I,
-                                 IloArray<IloNumVarArray>& B,
-                                 IloNumVarArray& U,
-                                 bool is_step1, bool is_step2, bool is_step3,
-                                 bool is_big_order, bool is_split_order,
-                                 int precision);
 
 // ============================================================================
 // 核心求解算法

@@ -317,6 +317,31 @@ static bool SolveRFSubproblem(
                 }
             }
 
+            // Save X, I, B, U for final solve
+            if (is_final) {
+                lists.small_x.resize(N);
+                lists.small_b.resize(N);
+                lists.small_u.resize(N);
+                lists.small_i.resize(F);
+
+                for (int i = 0; i < N; i++) {
+                    lists.small_x[i].resize(T);
+                    lists.small_b[i].resize(T);
+                    for (int t = 0; t < T; t++) {
+                        lists.small_x[i][t] = cplex.getValue(X[i][t]);
+                        lists.small_b[i][t] = cplex.getValue(B[i][t]);
+                    }
+                    lists.small_u[i] = cplex.getValue(U[i]);
+                }
+
+                for (int f = 0; f < F; f++) {
+                    lists.small_i[f].resize(T);
+                    for (int t = 0; t < T; t++) {
+                        lists.small_i[f][t] = cplex.getValue(I[f][t]);
+                    }
+                }
+            }
+
             env.end();
             return true;
         } else {
@@ -433,6 +458,11 @@ void SolveRF(AllValues& values, AllLists& lists) {
     int W = kRFWindowSize;
     double total_cpu_time = 0.0;
 
+    // RF metrics tracking
+    int rf_window_expansions = 0;
+    int rf_rollbacks = 0;
+    int rf_subproblems = 0;
+
     vector<vector<int>> y_solution, lambda_solution;
 
     // 主循环
@@ -441,6 +471,7 @@ void SolveRF(AllValues& values, AllLists& lists) {
         LOG_FMT("[RF] 迭代 %d: k=%d\n", state.iterations, k);
 
         double iter_cpu_time = 0.0;
+        rf_subproblems++;
         bool feasible = SolveRFSubproblem(k, W, state, values, lists,
                                            y_solution, lambda_solution,
                                            false, nullptr, &iter_cpu_time);
@@ -455,8 +486,10 @@ void SolveRF(AllValues& values, AllLists& lists) {
             bool resolved = false;
             for (int r = 0; r < kRFMaxRetries && !resolved; r++) {
                 W++;
+                rf_window_expansions++;
                 LOG_FMT("[RF] 扩展窗口重试 %d/%d，W=%d\n", r + 1, kRFMaxRetries, W);
                 iter_cpu_time = 0.0;
+                rf_subproblems++;
                 resolved = SolveRFSubproblem(k, W, state, values, lists,
                                               y_solution, lambda_solution,
                                               false, nullptr, &iter_cpu_time);
@@ -468,6 +501,7 @@ void SolveRF(AllValues& values, AllLists& lists) {
                 k += kRFFixStep;
                 W = kRFWindowSize;
             } else {
+                rf_rollbacks++;
                 if (!Rollback(state, k, W)) {
                     LOG("[RF] 无法继续，算法终止");
                     values.result_step1.objective = -1;
@@ -502,6 +536,107 @@ void SolveRF(AllValues& values, AllLists& lists) {
         values.result_step1.runtime = rf_time;
         values.result_step1.cpu_time = total_cpu_time;
         values.result_step1.gap = 0.0;
+
+        // ========== Calculate metrics ==========
+        auto& m = values.metrics;
+
+        // RF-specific metrics
+        m.rf_iterations = state.iterations;
+        m.rf_window_expansions = rf_window_expansions;
+        m.rf_rollbacks = rf_rollbacks;
+        m.rf_subproblems = rf_subproblems;
+        m.rf_avg_subproblem_time = rf_subproblems > 0
+            ? (total_cpu_time - final_cpu_time) / rf_subproblems : 0.0;
+        m.rf_final_solve_time = final_cpu_time;
+
+        // Cost breakdown (from saved variables)
+        m.cost_production = 0.0;
+        m.cost_setup = 0.0;
+        m.cost_inventory = 0.0;
+        m.cost_backorder = 0.0;
+        m.cost_unmet = 0.0;
+
+        for (int i = 0; i < values.number_of_items; ++i) {
+            for (int t = 0; t < T; ++t) {
+                m.cost_production += lists.cost_x[i] * lists.small_x[i][t];
+                m.cost_backorder += values.b_penalty * lists.small_b[i][t];
+            }
+            m.cost_unmet += values.u_penalty * lists.small_u[i];
+        }
+
+        for (int g = 0; g < values.number_of_groups; ++g) {
+            for (int t = 0; t < T; ++t) {
+                m.cost_setup += lists.cost_y[g] * lists.small_y[g][t];
+            }
+        }
+
+        for (int f = 0; f < values.number_of_flows; ++f) {
+            for (int t = 0; t < T; ++t) {
+                m.cost_inventory += lists.cost_i[f] * lists.small_i[f][t];
+            }
+        }
+
+        // Setup/Carryover statistics
+        m.total_setups = 0;
+        m.total_carryovers = 0;
+        m.saved_setup_cost = 0.0;
+
+        for (int g = 0; g < values.number_of_groups; ++g) {
+            for (int t = 0; t < T; ++t) {
+                if (lists.small_y[g][t] == 1) m.total_setups++;
+                if (lists.small_l[g][t] == 1) {
+                    m.total_carryovers++;
+                    m.saved_setup_cost += lists.cost_y[g];
+                }
+            }
+        }
+
+        // Demand fulfillment
+        m.unmet_count = 0;
+        m.total_backorder = 0.0;
+        m.total_demand = 0.0;
+        int on_time_count = 0;
+
+        for (int i = 0; i < values.number_of_items; ++i) {
+            m.total_demand += lists.final_demand[i];
+            if (lists.small_u[i] > 0.5) {
+                m.unmet_count++;
+            } else {
+                int lw = lists.lw_x[i];
+                if (lw < T && lists.small_b[i][lw] < 0.5) {
+                    on_time_count++;
+                }
+            }
+            int T_last = T - 1;
+            m.total_backorder += lists.small_b[i][T_last];
+        }
+
+        m.unmet_rate = values.number_of_items > 0
+            ? (double)m.unmet_count / values.number_of_items : 0.0;
+        m.on_time_rate = values.number_of_items > 0
+            ? (double)on_time_count / values.number_of_items : 0.0;
+
+        // Capacity utilization
+        m.capacity_util_by_period.resize(T);
+        m.capacity_util_avg = 0.0;
+        m.capacity_util_max = 0.0;
+
+        for (int t = 0; t < T; ++t) {
+            double usage = 0.0;
+            for (int i = 0; i < values.number_of_items; ++i) {
+                usage += lists.usage_x[i] * lists.small_x[i][t];
+            }
+            for (int g = 0; g < values.number_of_groups; ++g) {
+                usage += lists.usage_y[g] * lists.small_y[g][t];
+            }
+            double util = values.machine_capacity > 0
+                ? usage / values.machine_capacity : 0.0;
+            m.capacity_util_by_period[t] = util;
+            m.capacity_util_avg += util;
+            if (util > m.capacity_util_max) m.capacity_util_max = util;
+        }
+        m.capacity_util_avg /= T;
+
     } else {
         LOG("[RF] 最终求解失败");
         values.result_step1.objective = -1;

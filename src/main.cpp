@@ -273,6 +273,9 @@ int main(int argc, char* argv[]) {
     values.cplex_workdir = args.cplex_workdir;
     values.cplex_workmem = args.cplex_workmem;
     values.cplex_threads = args.cplex_threads;
+    values.output_dir = output_dir;
+    values.input_file = data_path;
+    values.algorithm_name = AlgorithmName(args.algorithm);
 
     clock_t case_start = clock();
 
@@ -371,12 +374,12 @@ int main(int argc, char* argv[]) {
     LOG_FMT("  Gap:      %.4f\n", final_gap);
     LOG("========================================");
 
-    // 保存结果
+    // 保存结果 (JSON格式)
     string timestamp = GetCurrentTimestamp();
     string algo_name_lower = AlgorithmName(args.algorithm);
     for (char& c : algo_name_lower) c = tolower(c);
 
-    string result_file = output_dir + "/" + algo_name_lower + "_result_" + timestamp + ".csv";
+    string result_file = output_dir + "/" + algo_name_lower + "_result_" + timestamp + ".json";
 
     ofstream fout(result_file);
     if (!fout) {
@@ -384,26 +387,261 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    fout << fixed << setprecision(6);
-    fout << "Algorithm,Objective,WallTime(s),CPUTime(s),Gap\n";
+    fout << fixed;
+    fout << "{\n";
+    fout << "  \"summary\": {\n";
+    fout << "    \"algorithm\": \"" << AlgorithmName(args.algorithm) << "\",\n";
+    fout << "    \"input_file\": \"" << data_path << "\",\n";
+    fout << setprecision(2);
+    fout << "    \"objective\": " << final_objective << ",\n";
+    fout << setprecision(3);
+    fout << "    \"total_time\": " << total_duration << ",\n";
+    fout << "    \"solve_time\": " << final_runtime << ",\n";
+    fout << setprecision(6);
+    fout << "    \"gap\": " << final_gap;
 
     if (args.algorithm == AlgorithmType::RR) {
-        // RR 输出三阶段详细结果
-        fout << "Step1," << values.result_step1.objective << ","
-             << values.result_step1.runtime << "," << values.result_step1.cpu_time << ","
-             << values.result_step1.gap << "\n";
-        fout << "Step2," << values.result_step2.objective << ","
-             << values.result_step2.runtime << "," << values.result_step2.cpu_time << ","
-             << values.result_step2.gap << "\n";
-        fout << "Step3," << values.result_step3.objective << ","
-             << values.result_step3.runtime << "," << values.result_step3.cpu_time << ","
-             << values.result_step3.gap << "\n";
-    } else {
-        // RF/RFO 输出单行结果
-        fout << AlgorithmName(args.algorithm) << "," << final_objective << ","
-             << final_runtime << "," << values.result_step1.cpu_time << ","
-             << final_gap << "\n";
+        fout << ",\n    \"steps\": [\n";
+        fout << "      {\"step\": 1, ";
+        fout << setprecision(2) << "\"objective\": " << values.result_step1.objective << ", ";
+        fout << setprecision(3) << "\"time\": " << values.result_step1.runtime << ", ";
+        fout << "\"cpu_time\": " << values.result_step1.cpu_time << ", ";
+        fout << setprecision(6) << "\"gap\": " << values.result_step1.gap << "},\n";
+        fout << "      {\"step\": 2, ";
+        fout << setprecision(2) << "\"objective\": " << values.result_step2.objective << ", ";
+        fout << setprecision(3) << "\"time\": " << values.result_step2.runtime << ", ";
+        fout << "\"cpu_time\": " << values.result_step2.cpu_time << ", ";
+        fout << setprecision(6) << "\"gap\": " << values.result_step2.gap << "},\n";
+        fout << "      {\"step\": 3, ";
+        fout << setprecision(2) << "\"objective\": " << values.result_step3.objective << ", ";
+        fout << setprecision(3) << "\"time\": " << values.result_step3.runtime << ", ";
+        fout << "\"cpu_time\": " << values.result_step3.cpu_time << ", ";
+        fout << setprecision(6) << "\"gap\": " << values.result_step3.gap << "}\n";
+        fout << "    ]";
     }
+    fout << "\n  },\n";
+
+    fout << "  \"problem\": {\n";
+    fout << "    \"N\": " << values.number_of_items << ",\n";
+    fout << "    \"T\": " << values.number_of_periods << ",\n";
+    fout << "    \"F\": " << values.number_of_flows << ",\n";
+    fout << "    \"G\": " << values.number_of_groups << ",\n";
+    fout << "    \"capacity\": " << values.machine_capacity << "\n";
+    fout << "  },\n";
+
+    // Metrics section
+    const auto& m = values.metrics;
+    fout << "  \"metrics\": {\n";
+
+    // Cost breakdown
+    fout << "    \"cost\": {\n";
+    fout << setprecision(2);
+    fout << "      \"production\": " << m.cost_production << ",\n";
+    fout << "      \"setup\": " << m.cost_setup << ",\n";
+    fout << "      \"inventory\": " << m.cost_inventory << ",\n";
+    fout << "      \"backorder\": " << m.cost_backorder << ",\n";
+    fout << "      \"unmet\": " << m.cost_unmet << "\n";
+    fout << "    },\n";
+
+    // Setup/Carryover
+    fout << "    \"setup_carryover\": {\n";
+    fout << "      \"total_setups\": " << m.total_setups << ",\n";
+    fout << "      \"total_carryovers\": " << m.total_carryovers << ",\n";
+    fout << "      \"saved_setup_cost\": " << m.saved_setup_cost << "\n";
+    fout << "    },\n";
+
+    // Demand fulfillment
+    fout << "    \"demand\": {\n";
+    fout << "      \"total_demand\": " << m.total_demand << ",\n";
+    fout << "      \"unmet_count\": " << m.unmet_count << ",\n";
+    fout << setprecision(4);
+    fout << "      \"unmet_rate\": " << m.unmet_rate << ",\n";
+    fout << "      \"total_backorder\": " << m.total_backorder << ",\n";
+    fout << "      \"on_time_rate\": " << m.on_time_rate << "\n";
+    fout << "    },\n";
+
+    // Capacity utilization
+    fout << "    \"capacity\": {\n";
+    fout << "      \"avg_utilization\": " << m.capacity_util_avg << ",\n";
+    fout << "      \"max_utilization\": " << m.capacity_util_max << ",\n";
+    fout << "      \"by_period\": [";
+    for (size_t t = 0; t < m.capacity_util_by_period.size(); t++) {
+        fout << setprecision(3) << m.capacity_util_by_period[t];
+        if (t + 1 < m.capacity_util_by_period.size()) fout << ", ";
+    }
+    fout << "]\n";
+    fout << "    },\n";
+
+    // CPLEX stats
+    fout << "    \"cplex\": {\n";
+    fout << "      \"nodes\": " << m.cplex_nodes << ",\n";
+    fout << "      \"iterations\": " << m.cplex_iterations << "\n";
+    fout << "    },\n";
+
+    // Algorithm-specific metrics
+    fout << "    \"algorithm_specific\": {\n";
+    if (args.algorithm == AlgorithmType::RF) {
+        fout << "      \"rf_iterations\": " << m.rf_iterations << ",\n";
+        fout << "      \"rf_window_expansions\": " << m.rf_window_expansions << ",\n";
+        fout << "      \"rf_rollbacks\": " << m.rf_rollbacks << ",\n";
+        fout << "      \"rf_subproblems\": " << m.rf_subproblems << ",\n";
+        fout << setprecision(3);
+        fout << "      \"rf_avg_subproblem_time\": " << m.rf_avg_subproblem_time << ",\n";
+        fout << "      \"rf_final_solve_time\": " << m.rf_final_solve_time << "\n";
+    } else if (args.algorithm == AlgorithmType::RFO) {
+        fout << setprecision(2);
+        fout << "      \"rfo_rf_objective\": " << m.rfo_rf_objective << ",\n";
+        fout << setprecision(3);
+        fout << "      \"rfo_rf_time\": " << m.rfo_rf_time << ",\n";
+        fout << "      \"rfo_fo_rounds\": " << m.rfo_fo_rounds << ",\n";
+        fout << "      \"rfo_fo_windows_improved\": " << m.rfo_fo_windows_improved << ",\n";
+        fout << setprecision(2);
+        fout << "      \"rfo_fo_improvement\": " << m.rfo_fo_improvement << ",\n";
+        fout << setprecision(4);
+        fout << "      \"rfo_fo_improvement_pct\": " << m.rfo_fo_improvement_pct << ",\n";
+        fout << setprecision(3);
+        fout << "      \"rfo_fo_time\": " << m.rfo_fo_time << ",\n";
+        fout << "      \"rfo_final_solve_time\": " << m.rfo_final_solve_time << "\n";
+    } else if (args.algorithm == AlgorithmType::RR) {
+        fout << setprecision(2);
+        fout << "      \"rr_step1_objective\": " << m.rr_step1_objective << ",\n";
+        fout << "      \"rr_step1_setups\": " << m.rr_step1_setups << ",\n";
+        fout << setprecision(3);
+        fout << "      \"rr_step1_time\": " << m.rr_step1_time << ",\n";
+        fout << "      \"rr_step2_carryovers\": " << m.rr_step2_carryovers << ",\n";
+        fout << "      \"rr_step2_time\": " << m.rr_step2_time << ",\n";
+        fout << setprecision(2);
+        fout << "      \"rr_step3_objective\": " << m.rr_step3_objective << ",\n";
+        fout << setprecision(3);
+        fout << "      \"rr_step3_time\": " << m.rr_step3_time << ",\n";
+        fout << setprecision(6);
+        fout << "      \"rr_step3_gap_to_step1\": " << m.rr_step3_gap_to_step1 << ",\n";
+        fout << setprecision(4);
+        fout << "      \"rr_carryover_utilization\": " << m.rr_carryover_utilization << "\n";
+    }
+    fout << "    }\n";
+
+    fout << "  },\n";
+
+    // Output Y and L variables (available for all algorithms)
+    fout << "  \"variables\": {\n";
+
+    // Y[g][t] - Setup decisions
+    fout << "    \"Y\": {\n";
+    fout << "      \"description\": \"Setup decision\",\n";
+    fout << "      \"dimensions\": [" << values.number_of_groups << ", " << values.number_of_periods << "],\n";
+    fout << "      \"data\": [\n";
+    for (int g = 0; g < values.number_of_groups; g++) {
+        fout << "        [";
+        for (int t = 0; t < values.number_of_periods; t++) {
+            int val = (g < (int)lists.small_y.size() && t < (int)lists.small_y[g].size())
+                    ? lists.small_y[g][t] : 0;
+            fout << val;
+            if (t + 1 < values.number_of_periods) fout << ", ";
+        }
+        fout << "]";
+        if (g + 1 < values.number_of_groups) fout << ",";
+        fout << "\n";
+    }
+    fout << "      ]\n";
+    fout << "    },\n";
+
+    // L[g][t] - Carryover decisions
+    fout << "    \"L\": {\n";
+    fout << "      \"description\": \"Setup carryover\",\n";
+    fout << "      \"dimensions\": [" << values.number_of_groups << ", " << values.number_of_periods << "],\n";
+    fout << "      \"data\": [\n";
+    for (int g = 0; g < values.number_of_groups; g++) {
+        fout << "        [";
+        for (int t = 0; t < values.number_of_periods; t++) {
+            int val = (g < (int)lists.small_l.size() && t < (int)lists.small_l[g].size())
+                    ? lists.small_l[g][t] : 0;
+            fout << val;
+            if (t + 1 < values.number_of_periods) fout << ", ";
+        }
+        fout << "]";
+        if (g + 1 < values.number_of_groups) fout << ",";
+        fout << "\n";
+    }
+    fout << "      ]\n";
+    fout << "    },\n";
+
+    // X[i][t] - Production quantities
+    fout << "    \"X\": {\n";
+    fout << "      \"description\": \"Production quantity\",\n";
+    fout << "      \"dimensions\": [" << values.number_of_items << ", " << values.number_of_periods << "],\n";
+    fout << "      \"data\": [\n";
+    fout << setprecision(0);
+    for (int i = 0; i < values.number_of_items; i++) {
+        fout << "        [";
+        for (int t = 0; t < values.number_of_periods; t++) {
+            double val = (i < (int)lists.small_x.size() && t < (int)lists.small_x[i].size())
+                       ? lists.small_x[i][t] : 0.0;
+            fout << val;
+            if (t + 1 < values.number_of_periods) fout << ", ";
+        }
+        fout << "]";
+        if (i + 1 < values.number_of_items) fout << ",";
+        fout << "\n";
+    }
+    fout << "      ]\n";
+    fout << "    },\n";
+
+    // I[f][t] - Inventory levels
+    fout << "    \"I\": {\n";
+    fout << "      \"description\": \"Inventory level\",\n";
+    fout << "      \"dimensions\": [" << values.number_of_flows << ", " << values.number_of_periods << "],\n";
+    fout << "      \"data\": [\n";
+    for (int f = 0; f < values.number_of_flows; f++) {
+        fout << "        [";
+        for (int t = 0; t < values.number_of_periods; t++) {
+            double val = (f < (int)lists.small_i.size() && t < (int)lists.small_i[f].size())
+                       ? lists.small_i[f][t] : 0.0;
+            fout << val;
+            if (t + 1 < values.number_of_periods) fout << ", ";
+        }
+        fout << "]";
+        if (f + 1 < values.number_of_flows) fout << ",";
+        fout << "\n";
+    }
+    fout << "      ]\n";
+    fout << "    },\n";
+
+    // B[i][t] - Backorder quantities
+    fout << "    \"B\": {\n";
+    fout << "      \"description\": \"Backorder quantity\",\n";
+    fout << "      \"dimensions\": [" << values.number_of_items << ", " << values.number_of_periods << "],\n";
+    fout << "      \"data\": [\n";
+    for (int i = 0; i < values.number_of_items; i++) {
+        fout << "        [";
+        for (int t = 0; t < values.number_of_periods; t++) {
+            double val = (i < (int)lists.small_b.size() && t < (int)lists.small_b[i].size())
+                       ? lists.small_b[i][t] : 0.0;
+            fout << val;
+            if (t + 1 < values.number_of_periods) fout << ", ";
+        }
+        fout << "]";
+        if (i + 1 < values.number_of_items) fout << ",";
+        fout << "\n";
+    }
+    fout << "      ]\n";
+    fout << "    },\n";
+
+    // U[i] - Unmet demand indicators
+    fout << "    \"U\": {\n";
+    fout << "      \"description\": \"Unmet demand indicator\",\n";
+    fout << "      \"dimensions\": [" << values.number_of_items << "],\n";
+    fout << "      \"data\": [";
+    for (int i = 0; i < values.number_of_items; i++) {
+        double val = (i < (int)lists.small_u.size()) ? lists.small_u[i] : 0.0;
+        fout << (int)val;
+        if (i + 1 < values.number_of_items) fout << ", ";
+    }
+    fout << "]\n";
+    fout << "    }\n";
+
+    fout << "  }\n";
+    fout << "}\n";
     fout.close();
 
     LOG_FMT("[保存] 结果已保存: %s\n", result_file.c_str());

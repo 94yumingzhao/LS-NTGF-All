@@ -690,6 +690,155 @@ void SolveStep3(AllValues& values, AllLists& lists) {
                 }
                 LOG_FMT("[阶段3] 使用 %d 个跨期，节省启动成本 %.2f\n", total_carryovers_used, saved_setup_cost);
 
+                // Save decision variables to AllLists for JSON output
+                lists.small_x.resize(values.number_of_items);
+                lists.small_b.resize(values.number_of_items);
+                lists.small_u.resize(values.number_of_items);
+                lists.small_i.resize(values.number_of_flows);
+
+                for (int i = 0; i < values.number_of_items; ++i) {
+                    lists.small_x[i].resize(values.number_of_periods);
+                    lists.small_b[i].resize(values.number_of_periods);
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        lists.small_x[i][t] = cplex.getValue(X[i][t]);
+                        lists.small_b[i][t] = cplex.getValue(B[i][t]);
+                    }
+                    lists.small_u[i] = cplex.getValue(U[i]);
+                }
+
+                for (int f = 0; f < values.number_of_flows; ++f) {
+                    lists.small_i[f].resize(values.number_of_periods);
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        lists.small_i[f][t] = cplex.getValue(I[f][t]);
+                    }
+                }
+
+                // ========== Calculate metrics ==========
+                auto& m = values.metrics;
+
+                // Cost breakdown
+                m.cost_production = 0.0;
+                m.cost_setup = 0.0;
+                m.cost_inventory = 0.0;
+                m.cost_backorder = 0.0;
+                m.cost_unmet = 0.0;
+
+                for (int i = 0; i < values.number_of_items; ++i) {
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        m.cost_production += lists.cost_x[i] * cplex.getValue(X[i][t]);
+                        m.cost_backorder += values.b_penalty * cplex.getValue(B[i][t]);
+                    }
+                    m.cost_unmet += values.u_penalty * cplex.getValue(U[i]);
+                }
+
+                for (int g = 0; g < values.number_of_groups; ++g) {
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        m.cost_setup += lists.cost_y[g] * lists.small_y[g][t];
+                    }
+                }
+
+                for (int f = 0; f < values.number_of_flows; ++f) {
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        m.cost_inventory += lists.cost_i[f] * cplex.getValue(I[f][t]);
+                    }
+                }
+
+                // Setup/Carryover statistics
+                m.total_setups = 0;
+                m.total_carryovers = total_carryovers_used;
+                m.saved_setup_cost = saved_setup_cost;
+
+                for (int g = 0; g < values.number_of_groups; ++g) {
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        if (lists.small_y[g][t] == 1) m.total_setups++;
+                    }
+                }
+
+                // Demand fulfillment
+                m.unmet_count = 0;
+                m.total_backorder = 0.0;
+                m.total_demand = 0.0;
+                int on_time_count = 0;
+
+                for (int i = 0; i < values.number_of_items; ++i) {
+                    m.total_demand += lists.final_demand[i];
+                    if (cplex.getValue(U[i]) > 0.5) {
+                        m.unmet_count++;
+                    } else {
+                        // Check if delivered on time (no backorder at due date)
+                        int lw = lists.lw_x[i];
+                        if (lw < values.number_of_periods && cplex.getValue(B[i][lw]) < 0.5) {
+                            on_time_count++;
+                        }
+                    }
+                    // Sum backorder at final period
+                    int T_last = values.number_of_periods - 1;
+                    m.total_backorder += cplex.getValue(B[i][T_last]);
+                }
+
+                m.unmet_rate = values.number_of_items > 0
+                    ? (double)m.unmet_count / values.number_of_items : 0.0;
+                m.on_time_rate = values.number_of_items > 0
+                    ? (double)on_time_count / values.number_of_items : 0.0;
+
+                // Capacity utilization
+                m.capacity_util_by_period.resize(values.number_of_periods);
+                m.capacity_util_avg = 0.0;
+                m.capacity_util_max = 0.0;
+
+                for (int t = 0; t < values.number_of_periods; ++t) {
+                    double usage = 0.0;
+                    for (int i = 0; i < values.number_of_items; ++i) {
+                        usage += lists.usage_x[i] * cplex.getValue(X[i][t]);
+                    }
+                    for (int g = 0; g < values.number_of_groups; ++g) {
+                        usage += lists.usage_y[g] * lists.small_y[g][t];
+                    }
+                    double util = values.machine_capacity > 0
+                        ? usage / values.machine_capacity : 0.0;
+                    m.capacity_util_by_period[t] = util;
+                    m.capacity_util_avg += util;
+                    if (util > m.capacity_util_max) m.capacity_util_max = util;
+                }
+                m.capacity_util_avg /= values.number_of_periods;
+
+                // CPLEX solver stats
+                m.cplex_nodes = cplex.getNnodes();
+                m.cplex_iterations = cplex.getNiterations();
+
+                // RR-specific metrics
+                m.rr_step1_objective = values.result_step1.objective;
+                m.rr_step1_time = values.result_step1.runtime;
+                m.rr_step2_time = values.result_step2.runtime;
+                m.rr_step3_objective = values.result_step3.objective;
+                m.rr_step3_time = step3_wall_time;
+
+                // Count Step1 setups
+                m.rr_step1_setups = 0;
+                for (int g = 0; g < values.number_of_groups; ++g) {
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        if (lists.small_y[g][t] == 1) m.rr_step1_setups++;
+                    }
+                }
+
+                // Step2 carryovers (from small_l)
+                m.rr_step2_carryovers = 0;
+                for (int g = 0; g < values.number_of_groups; ++g) {
+                    for (int t = 0; t < values.number_of_periods; ++t) {
+                        if (lists.small_l[g][t] == 1) m.rr_step2_carryovers++;
+                    }
+                }
+
+                // Gap between Step3 and Step1
+                if (m.rr_step1_objective > 0) {
+                    m.rr_step3_gap_to_step1 = (m.rr_step3_objective - m.rr_step1_objective)
+                                              / m.rr_step1_objective;
+                }
+
+                // Carryover utilization
+                m.rr_carryover_utilization = m.rr_step2_carryovers > 0
+                    ? (double)m.total_carryovers / m.rr_step2_carryovers : 0.0;
+
             } else {
                 LOG("[阶段3] 未找到可行解");
                 values.result_step3.objective = -1;
