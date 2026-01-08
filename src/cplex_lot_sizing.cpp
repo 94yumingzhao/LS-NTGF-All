@@ -1,6 +1,6 @@
 /**
  * @file cplex_lot_sizing.cpp
- * @brief CPLEX直接求解 - PP-GCB规范的MILP模型
+ * @brief CPLEX直接求解 - 完整MILP模型
  */
 
 #include "optimizer.h"
@@ -8,10 +8,10 @@
 #include <chrono>
 #include <ctime>
 
-// PP-GCB完整模型求解
+// 完整模型求解
 // 决策变量: x_it, y_gt, lambda_gt, I_ft, P_ft, b_it, u_i
 void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& output_dir) {
-    cout << "[CPLEX求解-PP-GCB] 启动求解器...\n";
+    cout << "[CPLEX直接求解] 启动求解器...\n";
     cout << "[模型规模] 产能=" << values.machine_capacity
          << " | 订单数=" << values.number_of_items
          << " | 时段数=" << values.number_of_periods
@@ -149,17 +149,26 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
             sum_lambda.end();
         }
 
-        // 约束(8): Carryover延续性 - y_gt + lambda_gt - lambda_g,t-1 >= 0
+        // 约束(8): Carryover可行性 - y_{g,t-1} + lambda_{g,t-1} - lambda_gt >= 0
+        // 含义: 如果周期t要有carryover，则周期t-1必须有setup或carryover
         for (int g = 0; g < values.number_of_groups; ++g) {
             for (int t = 1; t < values.number_of_periods; ++t) {
-                model.add(Y[g][t] + Lambda[g][t] - Lambda[g][t-1] >= 0);
+                model.add(Y[g][t-1] + Lambda[g][t-1] - Lambda[g][t] >= 0);
             }
         }
 
-        // 约束(9): Carryover结构限制 - 2*lambda_gt <= y_g,t-1 + y_gt
+        // 约束(9): Carryover排他性 - lambda_gt + lambda_{g,t-1} + y_gt - sum_{g'!=g} y_{g't} <= 2
+        // 含义: 防止carryover与其他组的setup冲突
         for (int g = 0; g < values.number_of_groups; ++g) {
             for (int t = 1; t < values.number_of_periods; ++t) {
-                model.add(2 * Lambda[g][t] <= Y[g][t-1] + Y[g][t]);
+                IloExpr sum_other_y(env);
+                for (int g2 = 0; g2 < values.number_of_groups; ++g2) {
+                    if (g2 != g) {
+                        sum_other_y += Y[g2][t];
+                    }
+                }
+                model.add(Lambda[g][t] + Lambda[g][t-1] + Y[g][t] - sum_other_y <= 2);
+                sum_other_y.end();
             }
         }
 
@@ -198,7 +207,7 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
         cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
         cplex.setParam(IloCplex::Param::WorkMem, values.cplex_workmem);
 
-        cout << "[PP-GCB] 开始求解完整模型...\n";
+        cout << "[CPLEX] 开始求解完整模型...\n";
         bool has_solution = cplex.solve();
         auto wall_end = std::chrono::steady_clock::now();
         double wall_seconds = std::chrono::duration<double>(wall_end - wall_start).count();
@@ -226,7 +235,7 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
                     status_str = "Interrupted with solution";
                 }
 
-                cout << "[PP-GCB求解结果] 状态=" << status_str
+                cout << "[CPLEX求解结果] 状态=" << status_str
                      << " | 目标值=" << cplex.getObjValue()
                      << " | 时间=" << wall_seconds << "秒"
                      << " | Gap=" << cplex.getMIPRelativeGap() << endl;
@@ -267,7 +276,7 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
                     }
                 }
 
-                cout << "[成本分解-PP-GCB]\n";
+                cout << "[成本分解]\n";
                 cout << "  生产成本: " << total_prod_cost << "\n";
                 cout << "  启动成本: " << total_setup_cost << "\n";
                 cout << "  库存成本: " << total_inv_cost << "\n";
@@ -289,13 +298,13 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
                     );
                 }
             } else {
-                cout << "[PP-GCB求解中断] 未找到可行解\n";
+                cout << "[CPLEX求解中断] 未找到可行解\n";
                 values.result_cpx.objective = -1;
                 values.result_cpx.runtime = wall_seconds;
                 values.result_cpx.cpu_time = cplex.getTime();
             }
         } else {
-            cout << "[PP-GCB求解失败] 状态=" << cplex.getStatus() << "\n";
+            cout << "[CPLEX求解失败] 状态=" << cplex.getStatus() << "\n";
             values.result_cpx.objective = -1;
             values.result_cpx.runtime = wall_seconds;
             values.result_cpx.cpu_time = cplex.getTime();
@@ -304,8 +313,8 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
         env.end();
 
     } catch (IloException& e) {
-        cerr << "[PP-GCB错误] CPLEX异常: " << e.getMessage() << endl;
+        cerr << "[CPLEX错误] CPLEX异常: " << e.getMessage() << endl;
     } catch (...) {
-        cerr << "[PP-GCB错误] 未知异常\n";
+        cerr << "[CPLEX错误] 未知异常\n";
     }
 }

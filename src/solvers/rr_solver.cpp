@@ -1,6 +1,6 @@
-// solver.cpp - PP-GCB 三阶段求解算法
+// rr_solver.cpp - RR (Relax-and-Recover) 三阶段求解算法
 //
-// PP-GCB (Production Planning with Group Carryover and Backlog) 算法:
+// RR (Relax-and-Recover) 算法:
 //   Stage 1: 固定 lambda=0, 放大产能, 求解启动结构 y*
 //   Stage 2: 固定 y*, 求解 lambda-子模型优化跨期变量 lambda*
 //   Stage 3: 固定 y* 和 lambda*, 恢复真实产能, 求解最终生产计划
@@ -8,7 +8,7 @@
 #include "optimizer.h"
 #include "logger.h"
 
-const double kCapacityExpansionFactor = 10.0;  // Stage 1 产能放大系数
+const double kCapacityExpansionFactor = 1.0;  // Stage 1 产能放大系数 (1.0 = 不放大)
 
 // Stage 1: 固定 lambda=0, 放大产能, 求解 y* 启动结构
 void SolveStep1(AllValues& values, AllLists& lists) {

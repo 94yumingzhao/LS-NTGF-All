@@ -233,26 +233,30 @@ static bool SolveRFSubproblem(
             model.add(lists.final_demand[i] * U[i] >= B[i][last_t]);
         }
 
-        // 约束9: Carryover 逻辑约束
+        // 约束10: 初始条件 - y_g0 = 0, lambda_g0 = 0
         for (int g = 0; g < G; g++) {
-            model.add(Lambda[g][0] == 0);  // 初始条件
+            model.add(Y[g][0] == 0);       // 第一周期不能setup
+            model.add(Lambda[g][0] == 0);  // 第一周期不能carryover
         }
 
+        // 约束7: 每期最多一个carryover - sum_g lambda_gt <= 1
         for (int t = 0; t < T; t++) {
             IloExpr sum_lambda(env);
             for (int g = 0; g < G; g++) {
                 sum_lambda += Lambda[g][t];
             }
-            model.add(sum_lambda <= 1);  // 每个周期最多一个 carryover
+            model.add(sum_lambda <= 1);
             sum_lambda.end();
         }
 
+        // 约束8: Carryover可行性 - y_{g,t-1} + lambda_{g,t-1} - lambda_gt >= 0
         for (int g = 0; g < G; g++) {
             for (int t = 1; t < T; t++) {
-                model.add(Y[g][t-1] + Lambda[g][t-1] - Lambda[g][t] >= 0);  // 连续性
+                model.add(Y[g][t-1] + Lambda[g][t-1] - Lambda[g][t] >= 0);
             }
         }
 
+        // 约束9: Carryover排他性 - lambda_gt + lambda_{g,t-1} + y_gt - sum_{g'!=g} y_{g't} <= 2
         for (int g = 0; g < G; g++) {
             for (int t = 1; t < T; t++) {
                 IloExpr sum_other_y(env);

@@ -1,6 +1,6 @@
 // optimizer.h - 核心配置、数据结构和接口定义
 // 定义生产计划优化系统的业务常量、数据结构和函数接口
-// 支持多种求解算法: RF, RFO, PP-GCB (RR)
+// 支持多种求解算法: RF, RFO, RR
 
 #ifndef OPTIMIZER_H_
 #define OPTIMIZER_H_
@@ -45,7 +45,7 @@ public:
 enum class AlgorithmType {
     RF,     // Relax-and-Fix: 时间窗口滚动固定
     RFO,    // RF + Fix-and-Optimize: RF + 滑动窗口优化
-    RR      // PP-GCB: 三阶段分解 (原 LS-NTGF-RR)
+    RR      // Relax-and-Recover: 三阶段分解
 };
 
 // 算法名称转换
@@ -163,7 +163,7 @@ struct SolutionMetrics {
     double rfo_fo_time = 0.0;          // FO阶段耗时
     double rfo_final_solve_time = 0.0; // 最终求解时间
 
-    // ========== RR (PP-GCB) 算法特有指标 ==========
+    // ========== RR (Relax-and-Recover) 算法特有指标 ==========
     double rr_step1_objective = 0.0;   // 阶段1目标值(放松产能)
     int rr_step1_setups = 0;           // 阶段1确定的setup数
     double rr_step1_time = 0.0;        // 阶段1耗时
@@ -354,7 +354,7 @@ void OutputDecisionVarsCSV(const string& filename,
 // CPLEX 直接求解
 void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& output_dir = "");
 
-// PP-GCB 三阶段分解 (用于 RR 算法)
+// RR (Relax-and-Recover) 三阶段分解
 void SolveStep1(AllValues& values, AllLists& lists);
 void SolveStep2(AllValues& values, AllLists& lists);
 void SolveStep3(AllValues& values, AllLists& lists);

@@ -3,7 +3,7 @@
 // 支持多种求解算法:
 // - RF:  Relax-and-Fix 时间窗口滚动固定
 // - RFO: RF + Fix-and-Optimize 滑动窗口优化
-// - RR:  PP-GCB 三阶段分解算法
+// - RR:  Relax-and-Recover 三阶段分解算法
 //
 // 用法: program --algo=RF|RFO|RR [options] [data_file]
 
@@ -70,7 +70,7 @@ void PrintUsage(const char* program) {
     cout << "\nAlgorithm Selection:\n";
     cout << "  --algo=RF           Relax-and-Fix (default)\n";
     cout << "  --algo=RFO          RF + Fix-and-Optimize\n";
-    cout << "  --algo=RR           PP-GCB 3-stage decomposition\n";
+    cout << "  --algo=RR           Relax-and-Recover 3-stage decomposition\n";
     cout << "\nOptions:\n";
     cout << "  -f, --file <path>       Input data file\n";
     cout << "  -o, --output <dir>      Output directory (default: ./results)\n";
@@ -315,7 +315,7 @@ int main(int argc, char* argv[]) {
             break;
 
         case AlgorithmType::RR:
-            // PP-GCB 三阶段求解
+            // RR (Relax-and-Recover) 三阶段求解
             EmitStatus("[STAGE:1:START]");
             SolveStep1(values, lists);
             EmitStatus("[STAGE:1:DONE:" +

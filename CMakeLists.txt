@@ -1,5 +1,5 @@
 # LS-NTGF-All - Unified Production Planning Optimization System
-# Supports multiple algorithms: RF, RFO, RR (PP-GCB)
+# Supports multiple algorithms: RF, RFO, RR
 
 cmake_minimum_required(VERSION 3.24)
 
@@ -81,7 +81,7 @@ set(SOURCES
     # Algorithm solvers
     ${SOLVERS_DIR}/rf_solver.cpp       # RF algorithm
     ${SOLVERS_DIR}/rfo_solver.cpp      # RFO algorithm (RF + FO)
-    ${SOLVERS_DIR}/pp_gcb_solver.cpp   # PP-GCB (RR) algorithm
+    ${SOLVERS_DIR}/rr_solver.cpp       # RR (Relax-and-Recover) algorithm
 )
 
 # Define header files (for IDE display)
@@ -105,7 +105,7 @@ source_group("Source Files" FILES
 source_group("Source Files\\Solvers" FILES
     ${SOLVERS_DIR}/rf_solver.cpp
     ${SOLVERS_DIR}/rfo_solver.cpp
-    ${SOLVERS_DIR}/pp_gcb_solver.cpp
+    ${SOLVERS_DIR}/rr_solver.cpp
 )
 source_group("Header Files" FILES ${HEADERS})
 
@@ -156,7 +156,7 @@ add_custom_target(run-rr
     COMMAND LS-NTGF-All --algo=RR
     DEPENDS LS-NTGF-All
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    COMMENT "Running with RR (PP-GCB) algorithm..."
+    COMMENT "Running with RR (Relax-and-Recover) algorithm..."
 )
 
 # Create test targets
@@ -189,7 +189,7 @@ message(STATUS "")
 message(STATUS "Supported Algorithms:")
 message(STATUS "  --algo=RF   : Relax-and-Fix")
 message(STATUS "  --algo=RFO  : RF + Fix-and-Optimize")
-message(STATUS "  --algo=RR   : PP-GCB 3-stage decomposition")
+message(STATUS "  --algo=RR   : Relax-and-Recover 3-stage decomposition")
 message(STATUS "========================================")
 message(STATUS "")
 
