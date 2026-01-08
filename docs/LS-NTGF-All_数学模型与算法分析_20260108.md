@@ -46,14 +46,14 @@
 
 | 符号 | 含义 |
 |------|------|
-| $I = \{1, 2, \ldots, N\}$ | 订单(产品)集合 |
-| $T = \{1, 2, \ldots, T\}$ | 计划周期集合 |
-| $G = \{1, 2, \ldots, G\}$ | 产品族(分组)集合 |
-| $F = \{1, 2, \ldots, F\}$ | 下游流向集合 |
-| $i \in I$ | 订单索引 |
-| $t \in T$ | 周期索引 |
-| $g \in G$ | 产品族索引 |
-| $f \in F$ | 流向索引 |
+| $\mathcal{I} = \{1, 2, \ldots, N\}$ | 订单(产品)集合 |
+| $\mathcal{T} = \{1, 2, \ldots, T\}$ | 计划周期集合 |
+| $\mathcal{G} = \{1, 2, \ldots, G\}$ | 产品族(分组)集合 |
+| $\mathcal{F} = \{1, 2, \ldots, F\}$ | 下游流向集合 |
+| $i \in \mathcal{I}$ | 订单索引 |
+| $t \in \mathcal{T}$ | 周期索引 |
+| $g \in \mathcal{G}$ | 产品族索引 |
+| $f \in \mathcal{F}$ | 流向索引 |
 
 ### 2.2 参数
 
@@ -78,13 +78,13 @@
 
 | 符号 | 类型 | 含义 |
 |------|------|------|
-| $x_{it}$ | 连续 $\geq 0$ | 订单 $i$ 在周期 $t$ 的生产量 |
-| $y_{gt}$ | 二元 $\{0,1\}$ | 产品族 $g$ 在周期 $t$ 是否启动 |
-| $\lambda_{gt}$ | 二元 $\{0,1\}$ | 产品族 $g$ 在周期 $t$ 是否有启动跨期 |
-| $I_{ft}$ | 连续 $\geq 0$ | 流向 $f$ 在周期 $t$ 末的在制品库存 |
-| $P_{ft}$ | 连续 $\geq 0$ | 流向 $f$ 在周期 $t$ 的下游处理量 |
-| $b_{it}$ | 连续 $\geq 0$ | 订单 $i$ 在周期 $t$ 的欠交量 |
-| $u_i$ | 二元 $\{0,1\}$ | 订单 $i$ 是否完全未满足 |
+| $x_{it}$ | 连续, $\geq 0$ | 订单 $i$ 在周期 $t$ 的生产量 |
+| $y_{gt}$ | 二元, $\in \{0,1\}$ | 产品族 $g$ 在周期 $t$ 是否启动 |
+| $\lambda_{gt}$ | 二元, $\in \{0,1\}$ | 产品族 $g$ 在周期 $t$ 是否有启动跨期 |
+| $I_{ft}$ | 连续, $\geq 0$ | 流向 $f$ 在周期 $t$ 末的在制品库存 |
+| $P_{ft}$ | 连续, $\geq 0$ | 流向 $f$ 在周期 $t$ 的下游处理量 |
+| $b_{it}$ | 连续, $\geq 0$ | 订单 $i$ 在周期 $t$ 的欠交量 |
+| $u_i$ | 二元, $\in \{0,1\}$ | 订单 $i$ 是否完全未满足 |
 
 ---
 
@@ -92,111 +92,85 @@
 
 ### 3.1 目标函数
 
-$$
-\min Z = \underbrace{\sum_{i \in I} \sum_{t \in T} c^x_i \cdot x_{it}}_{\text{生产成本}} + \underbrace{\sum_{g \in G} \sum_{t \in T} c^y_g \cdot y_{gt}}_{\text{启动成本}} + \underbrace{\sum_{f \in F} \sum_{t \in T} c^I_f \cdot I_{ft}}_{\text{库存成本}} + \underbrace{\sum_{i \in I} \sum_{t \geq l_i} c^b \cdot b_{it}}_{\text{欠交惩罚}} + \underbrace{\sum_{i \in I} c^u \cdot u_i}_{\text{未满足惩罚}}
-$$
+最小化总成本 = 生产成本 + 启动成本 + 库存成本 + 欠交惩罚 + 未满足惩罚
+
+$$\min Z = \sum_{i \in \mathcal{I}} \sum_{t \in \mathcal{T}} c^x_i x_{it} + \sum_{g \in \mathcal{G}} \sum_{t \in \mathcal{T}} c^y_g y_{gt} + \sum_{f \in \mathcal{F}} \sum_{t \in \mathcal{T}} c^I_f I_{ft} + \sum_{i \in \mathcal{I}} \sum_{t \geq l_i} c^b b_{it} + \sum_{i \in \mathcal{I}} c^u u_i$$
 
 ### 3.2 约束条件
 
 #### 约束(1): 需求满足约束
 
-$$
-\sum_{t \in T} x_{it} + u_i \cdot d_i \geq d_i, \quad \forall i \in I
-$$
+$$\sum_{t \in \mathcal{T}} x_{it} + u_i \cdot d_i \geq d_i, \quad \forall i \in \mathcal{I}$$
 
 > 每个订单要么被完全生产，要么标记为未满足
 
 #### 约束(2): 下游工序流平衡
 
-$$
-\sum_{i \in I} k_{if} \cdot x_{it} + I_{f,t-1} - P_{ft} - I_{ft} = 0, \quad \forall f \in F, \forall t \in T
-$$
+$$\sum_{i \in \mathcal{I}} k_{if} \cdot x_{it} + I_{f,t-1} - P_{ft} - I_{ft} = 0, \quad \forall f \in \mathcal{F}, \forall t \in \mathcal{T}$$
 
 > 流向 $f$ 的当期产出 + 期初库存 = 下游处理量 + 期末库存
 
 #### 约束(3): 下游处理能力
 
-$$
-P_{ft} \leq D_{ft}, \quad \forall f \in F, \forall t \in T
-$$
+$$P_{ft} \leq D_{ft}, \quad \forall f \in \mathcal{F}, \forall t \in \mathcal{T}$$
 
 #### 约束(4): 终期未满足指示
 
-$$
-d_i \cdot u_i \geq b_{i,T}, \quad \forall i \in I
-$$
+$$d_i \cdot u_i \geq b_{i,T}, \quad \forall i \in \mathcal{I}$$
 
 > 若终期仍有欠交，则标记为未满足
 
 #### 约束(5): 总产能约束
 
-$$
-\sum_{i \in I} s^x_i \cdot x_{it} + \sum_{g \in G} s^y_g \cdot y_{gt} \leq C_t, \quad \forall t \in T
-$$
+$$\sum_{i \in \mathcal{I}} s^x_i \cdot x_{it} + \sum_{g \in \mathcal{G}} s^y_g \cdot y_{gt} \leq C_t, \quad \forall t \in \mathcal{T}$$
 
 #### 约束(6): 产品族启动约束 (Big-M)
 
-$$
-\sum_{i: h_{ig}=1} s^x_i \cdot x_{it} \leq C_t \cdot (y_{gt} + \lambda_{gt}), \quad \forall g \in G, \forall t \in T
-$$
+$$\sum_{i: h_{ig}=1} s^x_i \cdot x_{it} \leq C_t \cdot (y_{gt} + \lambda_{gt}), \quad \forall g \in \mathcal{G}, \forall t \in \mathcal{T}$$
 
 > 族 $g$ 在周期 $t$ 要生产，必须有启动或跨期
 
 #### 约束(7): 每期最多一个跨期
 
-$$
-\sum_{g \in G} \lambda_{gt} \leq 1, \quad \forall t \in T
-$$
+$$\sum_{g \in \mathcal{G}} \lambda_{gt} \leq 1, \quad \forall t \in \mathcal{T}$$
 
 #### 约束(8): 跨期可行性
 
-$$
-y_{g,t-1} + \lambda_{g,t-1} - \lambda_{gt} \geq 0, \quad \forall g \in G, \forall t \geq 2
-$$
+$$y_{g,t-1} + \lambda_{g,t-1} - \lambda_{gt} \geq 0, \quad \forall g \in \mathcal{G}, \forall t \geq 2$$
 
 > 周期 $t$ 要有跨期，周期 $t-1$ 必须有启动或跨期
 
 #### 约束(9): 跨期排他性
 
-$$
-\lambda_{gt} + \lambda_{g,t-1} + y_{gt} - \sum_{g' \neq g} y_{g't} \leq 2, \quad \forall g \in G, \forall t \geq 2
-$$
+$$\lambda_{gt} + \lambda_{g,t-1} + y_{gt} - \sum_{g' \neq g} y_{g't} \leq 2, \quad \forall g \in \mathcal{G}, \forall t \geq 2$$
 
 > 防止跨期与其他族的启动冲突
 
 #### 约束(10): 初始状态
 
-$$
-y_{g,1} = 0, \quad \lambda_{g,1} = 0, \quad \forall g \in G
-$$
+$$y_{g,1} = 0, \quad \lambda_{g,1} = 0, \quad \forall g \in \mathcal{G}$$
 
 > 第一周期没有上期遗留的启动状态
 
 #### 约束(11): 时间窗约束
 
-$$
-x_{it} = 0, \quad \forall i \in I, \forall t < e_i \text{ 或 } t > l_i
-$$
+当 $t < e_i$ 或 $t > l_i$ 时:
+
+$$x_{it} = 0, \quad \forall i \in \mathcal{I}$$
 
 #### 约束(12): 欠交定义
 
-$$
-d_i - \sum_{\tau=1}^{t} x_{i\tau} = b_{it}, \quad \forall i \in I, \forall t \geq l_i
-$$
+$$d_i - \sum_{\tau=1}^{t} x_{i\tau} = b_{it}, \quad \forall i \in \mathcal{I}, \forall t \geq l_i$$
 
 ### 3.3 变量域
 
-$$
-\begin{aligned}
-x_{it} &\geq 0, &\forall i, t \\
-y_{gt} &\in \{0, 1\}, &\forall g, t \\
-\lambda_{gt} &\in \{0, 1\}, &\forall g, t \\
-I_{ft} &\geq 0, &\forall f, t \\
-P_{ft} &\geq 0, &\forall f, t \\
-b_{it} &\geq 0, &\forall i, t \\
-u_i &\in \{0, 1\}, &\forall i
-\end{aligned}
-$$
+- $x_{it} \geq 0, \quad \forall i, t$
+- $y_{gt} \in \{0, 1\}, \quad \forall g, t$
+- $\lambda_{gt} \in \{0, 1\}, \quad \forall g, t$
+- $I_{ft} \geq 0, \quad \forall f, t$
+- $P_{ft} \geq 0, \quad \forall f, t$
+- $b_{it} \geq 0, \quad \forall i, t$
+- $u_i \in \{0, 1\}, \quad \forall i$
 
 ---
 
@@ -206,7 +180,7 @@ $$
 
 **Relax-and-Fix (RF)** 是一种基于时间分解的启发式算法，核心思想是:
 
-1. 将时间轴划分为三个动态区域: **已固定区 $T^{\text{fix}}$**、**当前窗口 $T^{\text{win}}$**、**放松区 $T^{\text{rel}}$**
+1. 将时间轴划分为三个动态区域: **已固定区** $T^{fix}$、**当前窗口** $T^{win}$、**放松区** $T^{rel}$
 2. 在当前窗口内保持整数约束，放松区内放松为连续变量
 3. 求解子问题后，固定窗口内的解，滑动窗口向前推进
 4. 迭代直到所有周期都被固定
@@ -220,22 +194,18 @@ $$
 | 最大重试 | $R$ | 3 | 窗口扩展的最大重试次数 |
 | 子问题时限 | - | 60秒 | 每个子问题的CPLEX时间限制 |
 
-### 4.3 子问题 $\text{SP}(k, W)$ 定义
+### 4.3 子问题 SP(k, W) 定义
 
 给定起始周期 $k$ 和窗口大小 $W$，定义时间区间:
 
-$$
-\begin{aligned}
-T^{\text{fix}} &= \{1, 2, \ldots, k-1\} &\text{(已固定)} \\
-T^{\text{win}} &= \{k, k+1, \ldots, k+W-1\} &\text{(当前窗口)} \\
-T^{\text{rel}} &= \{k+W, k+W+1, \ldots, T\} &\text{(放松区)}
-\end{aligned}
-$$
+- $T^{fix} = \{1, 2, \ldots, k-1\}$ (已固定)
+- $T^{win} = \{k, k+1, \ldots, k+W-1\}$ (当前窗口)
+- $T^{rel} = \{k+W, k+W+1, \ldots, T\}$ (放松区)
 
 子问题中变量类型:
-- $t \in T^{\text{fix}}$: $y_{gt}, \lambda_{gt}$ 固定为 $\bar{y}_{gt}, \bar{\lambda}_{gt}$
-- $t \in T^{\text{win}}$: $y_{gt}, \lambda_{gt} \in \{0,1\}$ (二元)
-- $t \in T^{\text{rel}}$: $y_{gt}, \lambda_{gt} \in [0,1]$ (连续松弛)
+- $t \in T^{fix}$: $y_{gt}, \lambda_{gt}$ 固定为 $\bar{y}_{gt}, \bar{\lambda}_{gt}$
+- $t \in T^{win}$: $y_{gt}, \lambda_{gt} \in \{0,1\}$ (二元)
+- $t \in T^{rel}$: $y_{gt}, \lambda_{gt} \in [0,1]$ (连续松弛)
 - $u_i$: 在迭代过程中放松为连续，最终求解时恢复二元
 
 ### 4.4 算法流程
@@ -307,17 +277,15 @@ $$
 | 边界缓冲 | $\Delta$ | 1 | 窗口边界的缓冲周期 |
 | 子问题时限 | - | 30秒 | FO子问题时间限制 |
 
-### 5.3 FO 邻域子问题 $\text{NSP}(a)$
+### 5.3 FO 邻域子问题 NSP(a)
 
 给定窗口起点 $a$，定义扩展窗口:
 
-$$
-\text{WND}^+(a) = [\max(1, a - \Delta), \min(T, a + W_o + \Delta))
-$$
+$$WND^+(a) = [\max(1, a - \Delta), \min(T, a + W_o + \Delta))$$
 
 邻域子问题中:
-- $t \in \text{WND}^+(a)$: $y_{gt}, \lambda_{gt} \in \{0,1\}$ (二元，可优化)
-- $t \notin \text{WND}^+(a)$: $y_{gt}, \lambda_{gt}$ 固定为当前最优值
+- $t \in WND^+(a)$: $y_{gt}, \lambda_{gt} \in \{0,1\}$ (二元，可优化)
+- $t \notin WND^+(a)$: $y_{gt}, \lambda_{gt}$ 固定为当前最优值
 
 ### 5.4 算法流程
 
@@ -382,48 +350,43 @@ $$
 **模型特点**:
 - 移除所有 $\lambda$ 变量 (等价于 $\lambda_{gt} = 0, \forall g, t$)
 - 产能可选择放大 (默认系数 1.0，不放大)
-- Big-M 约束简化为: $\sum_{i: h_{ig}=1} s^x_i \cdot x_{it} \leq C_t \cdot y_{gt}$
+- Big-M 约束简化为:
 
-**输出**: $y^*_{gt}, \forall g, t$ (启动决策)
+$$\sum_{i: h_{ig}=1} s^x_i \cdot x_{it} \leq C_t \cdot y_{gt}$$
+
+**输出**: $y^*_{gt}$ 对于所有 $g, t$ (启动决策)
 
 ### 6.3 Stage 2: 求解跨期变量
 
 **目标**: 在给定 $y^*$ 下，最大化跨期次数
 
-$$
-\max \sum_{g \in G} \sum_{t \in T} \lambda_{gt}
-$$
+$$\max \sum_{g \in \mathcal{G}} \sum_{t \in \mathcal{T}} \lambda_{gt}$$
 
 **约束**:
 
 **(a) 固定启动**:
-$$
-y_{gt} = y^*_{gt}, \quad \forall g, t
-$$
+
+$$y_{gt} = y^*_{gt}, \quad \forall g, t$$
 
 **(b) 初始状态**:
-$$
-\lambda_{g,1} = 0, \quad \forall g
-$$
+
+$$\lambda_{g,1} = 0, \quad \forall g$$
 
 **(c) 每期最多一个跨期**:
-$$
-\sum_{g \in G} \lambda_{gt} \leq 1, \quad \forall t
-$$
+
+$$\sum_{g \in \mathcal{G}} \lambda_{gt} \leq 1, \quad \forall t$$
 
 **(d) 跨期连续性**:
-$$
-2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}, \quad \forall g, \forall t \geq 2
-$$
+
+$$2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}, \quad \forall g, \forall t \geq 2$$
 
 > 只有当 $y^*_{g,t-1} = 1$ 且 $y^*_{gt} = 1$ 时，$\lambda_{gt}$ 才能为 1
 
 **(e) 跨期排他性**:
-$$
-\lambda_{g,t-1} + \lambda_{gt} \leq 2 - \frac{1}{|G|} \sum_{g' \neq g} y^*_{g',t-1}, \quad \forall g, \forall t \geq 3
-$$
 
-**输出**: $\lambda^*_{gt}, \forall g, t$ (跨期决策)
+$$\lambda_{g,t-1} + \lambda_{gt} \leq 2 - \frac{1}{|\mathcal{G}|} \sum_{g' \neq g} y^*_{g',t-1}, \quad \forall g, \forall t \geq 3$$
+
+**输出**: $\lambda^*_{gt}$ 对于所有 $g, t$ (跨期决策)
 
 ### 6.4 Stage 3: 最终求解
 
