@@ -265,6 +265,8 @@ struct AllLists {
     vector<double> cost_x;
     vector<int> cost_y;
     vector<double> cost_i;
+    vector<double> cost_b;  // cB[i]: 订单i的单位欠交惩罚
+    vector<double> cost_u;  // cU[i]: 订单i的未满足惩罚
 
     // 资源使用参数
     vector<int> usage_x;

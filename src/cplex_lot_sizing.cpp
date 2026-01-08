@@ -58,7 +58,7 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
 
         for (int i = 0; i < values.number_of_items; ++i) {
             for (int t = lists.lw_x[i]; t < values.number_of_periods; ++t) {
-                objective += values.b_penalty * B[i][t];
+                objective += lists.cost_b[i] * B[i][t];
             }
         }
 
@@ -75,7 +75,7 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
         }
 
         for (int i = 0; i < values.number_of_items; ++i) {
-            objective += values.u_penalty * U[i];
+            objective += lists.cost_u[i] * U[i];
         }
 
         model.add(IloMinimize(env, objective));
@@ -172,16 +172,17 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
             }
         }
 
-        // 约束(10): 初始状态 - y_g0 = 0, lambda_g0 = 0
+        // 约束(10): 初始状态 - lambda_g0 = 0 (第一周期无跨期，因为没有前序周期)
+        // 注意: Y[g][0] 不约束为0，第一周期允许启动
         for (int g = 0; g < values.number_of_groups; ++g) {
-            model.add(Y[g][0] == 0);
             model.add(Lambda[g][0] == 0);
         }
 
-        // 约束(13): 时间窗约束
+        // 约束(13): 最早生产期约束 (仅约束 t < e_i)
+        // 注意: t > l_i 后仍可生产，通过欠交惩罚控制
         for (int i = 0; i < values.number_of_items; ++i) {
             for (int t = 0; t < values.number_of_periods; ++t) {
-                if (t < lists.ew_x[i] || t > lists.lw_x[i]) {
+                if (t < lists.ew_x[i]) {
                     model.add(X[i][t] == 0);
                 }
             }
@@ -258,9 +259,9 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
                         total_prod_cost += lists.cost_x[i] * cplex.getValue(X[i][t]);
                     }
                     for (int t = lists.lw_x[i]; t < values.number_of_periods; ++t) {
-                        total_backorder_penalty += values.b_penalty * cplex.getValue(B[i][t]);
+                        total_backorder_penalty += lists.cost_b[i] * cplex.getValue(B[i][t]);
                     }
-                    total_unmet_penalty += values.u_penalty * cplex.getValue(U[i]);
+                    total_unmet_penalty += lists.cost_u[i] * cplex.getValue(U[i]);
                 }
 
                 for (int g = 0; g < values.number_of_groups; ++g) {

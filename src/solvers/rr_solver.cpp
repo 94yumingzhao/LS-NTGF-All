@@ -8,7 +8,7 @@
 #include "optimizer.h"
 #include "logger.h"
 
-const double kCapacityExpansionFactor = 1.0;  // Stage 1 产能放大系数 (1.0 = 不放大)
+const double kCapacityExpansionFactor = 10.0;  // Stage 1 产能放大系数 (alpha >> 1)
 
 // Stage 1: 固定 lambda=0, 放大产能, 求解 y* 启动结构
 void SolveStep1(AllValues& values, AllLists& lists) {
@@ -46,7 +46,11 @@ void SolveStep1(AllValues& values, AllLists& lists) {
 
         for (int i = 0; i < values.number_of_items; i++) {
             for (int t = 0; t < values.number_of_periods; t++) {
-                objective += lists.cost_x[i] * X[i][t] + values.b_penalty * B[i][t];
+                objective += lists.cost_x[i] * X[i][t];
+            }
+            // 欠交惩罚 (仅 t >= l_i)
+            for (int t = lists.lw_x[i]; t < values.number_of_periods; t++) {
+                objective += lists.cost_b[i] * B[i][t];
             }
         }
 
@@ -63,7 +67,7 @@ void SolveStep1(AllValues& values, AllLists& lists) {
         }
 
         for (int i = 0; i < values.number_of_items; i++) {
-            objective += values.u_penalty * U[i];
+            objective += lists.cost_u[i] * U[i];
         }
 
         model.add(IloMinimize(env, objective));
@@ -132,10 +136,10 @@ void SolveStep1(AllValues& values, AllLists& lists) {
             }
         }
 
-        // 时间窗约束
+        // 最早生产期约束 (仅约束 t < e_i)
         for (int i = 0; i < values.number_of_items; i++) {
             for (int t = 0; t < values.number_of_periods; t++) {
-                if (t < lists.ew_x[i] || t > lists.lw_x[i]) {
+                if (t < lists.ew_x[i]) {
                     model.add(X[i][t] == 0);
                 }
             }
@@ -497,7 +501,11 @@ void SolveStep3(AllValues& values, AllLists& lists) {
 
         for (int i = 0; i < values.number_of_items; ++i) {
             for (int t = 0; t < values.number_of_periods; ++t) {
-                objective += lists.cost_x[i] * X[i][t] + values.b_penalty * B[i][t];
+                objective += lists.cost_x[i] * X[i][t];
+            }
+            // 欠交惩罚 (仅 t >= l_i)
+            for (int t = lists.lw_x[i]; t < values.number_of_periods; ++t) {
+                objective += lists.cost_b[i] * B[i][t];
             }
         }
 
@@ -514,7 +522,7 @@ void SolveStep3(AllValues& values, AllLists& lists) {
         }
 
         for (int i = 0; i < values.number_of_items; ++i) {
-            objective += values.u_penalty * U[i];
+            objective += lists.cost_u[i] * U[i];
         }
 
         model.add(IloMinimize(env, objective));
@@ -726,9 +734,9 @@ void SolveStep3(AllValues& values, AllLists& lists) {
                 for (int i = 0; i < values.number_of_items; ++i) {
                     for (int t = 0; t < values.number_of_periods; ++t) {
                         m.cost_production += lists.cost_x[i] * cplex.getValue(X[i][t]);
-                        m.cost_backorder += values.b_penalty * cplex.getValue(B[i][t]);
+                        m.cost_backorder += lists.cost_b[i] * cplex.getValue(B[i][t]);
                     }
-                    m.cost_unmet += values.u_penalty * cplex.getValue(U[i]);
+                    m.cost_unmet += lists.cost_u[i] * cplex.getValue(U[i]);
                 }
 
                 for (int g = 0; g < values.number_of_groups; ++g) {

@@ -112,27 +112,37 @@ static bool SolveRFSubproblem(
         // 目标函数
         IloExpr objective(env);
 
+        // 生产成本
         for (int i = 0; i < N; i++) {
             for (int t = 0; t < T; t++) {
                 objective += lists.cost_x[i] * X[i][t];
-                objective += values.b_penalty * B[i][t];
             }
         }
 
+        // 欠交惩罚 (仅 t >= l_i)
+        for (int i = 0; i < N; i++) {
+            for (int t = lists.lw_x[i]; t < T; t++) {
+                objective += lists.cost_b[i] * B[i][t];
+            }
+        }
+
+        // 启动成本
         for (int g = 0; g < G; g++) {
             for (int t = 0; t < T; t++) {
                 objective += lists.cost_y[g] * Y[g][t];
             }
         }
 
+        // 库存成本
         for (int f = 0; f < F; f++) {
             for (int t = 0; t < T; t++) {
                 objective += lists.cost_i[f] * I[f][t];
             }
         }
 
+        // 未满足惩罚
         for (int i = 0; i < N; i++) {
-            objective += values.u_penalty * U[i];
+            objective += lists.cost_u[i] * U[i];
         }
 
         model.add(IloMinimize(env, objective));
@@ -202,10 +212,11 @@ static bool SolveRFSubproblem(
             }
         }
 
-        // 约束6: 时间窗约束
+        // 约束6: 最早生产期约束 (仅约束 t < e_i)
+        // 注意: t > l_i 后仍可生产，通过欠交惩罚控制
         for (int i = 0; i < N; i++) {
             for (int t = 0; t < T; t++) {
-                if (t < lists.ew_x[i] || t > lists.lw_x[i]) {
+                if (t < lists.ew_x[i]) {
                     model.add(X[i][t] == 0);
                 }
             }
@@ -233,10 +244,10 @@ static bool SolveRFSubproblem(
             model.add(lists.final_demand[i] * U[i] >= B[i][last_t]);
         }
 
-        // 约束10: 初始条件 - y_g0 = 0, lambda_g0 = 0
+        // 约束10: 初始条件 - lambda_g0 = 0 (第一周期无跨期)
+        // 注意: Y[g][0] 不约束为0，第一周期允许启动
         for (int g = 0; g < G; g++) {
-            model.add(Y[g][0] == 0);       // 第一周期不能setup
-            model.add(Lambda[g][0] == 0);  // 第一周期不能carryover
+            model.add(Lambda[g][0] == 0);
         }
 
         // 约束7: 每期最多一个carryover - sum_g lambda_gt <= 1
@@ -563,9 +574,9 @@ void SolveRF(AllValues& values, AllLists& lists) {
         for (int i = 0; i < values.number_of_items; ++i) {
             for (int t = 0; t < T; ++t) {
                 m.cost_production += lists.cost_x[i] * lists.small_x[i][t];
-                m.cost_backorder += values.b_penalty * lists.small_b[i][t];
+                m.cost_backorder += lists.cost_b[i] * lists.small_b[i][t];
             }
-            m.cost_unmet += values.u_penalty * lists.small_u[i];
+            m.cost_unmet += lists.cost_u[i] * lists.small_u[i];
         }
 
         for (int g = 0; g < values.number_of_groups; ++g) {

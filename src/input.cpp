@@ -180,6 +180,10 @@ void ReadData(AllValues& values, AllLists& lists, const string& path) {
       }
     }
 
+    // 初始化订单特定惩罚系数 (使用全局默认值)
+    lists.cost_b.resize(values.number_of_items, values.b_penalty);
+    lists.cost_u.resize(values.number_of_items, values.u_penalty);
+
     cout << "[读取] 完成，共 " << values.number_of_items << " 订单\n";
 
   } catch (const exception& e) {

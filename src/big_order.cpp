@@ -369,7 +369,7 @@ void SolveBigOrder(AllValues& values, AllLists& lists) {
         for (int i = 0; i < values.number_of_items; i++) {
             for (int t = 0; t < values.number_of_periods; t++) {
                 objective += lists.cost_x[i] * X[i][t];
-                objective += values.b_penalty * B[i][t];
+                objective += lists.cost_b[i] * B[i][t];
 
                 for (int g = 0; g < values.number_of_groups; g++) {
                     if (lists.group_flag[i][g]) {
