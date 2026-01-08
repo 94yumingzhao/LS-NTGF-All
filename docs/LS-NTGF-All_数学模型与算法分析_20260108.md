@@ -354,7 +354,7 @@ $$WND^+(a) = [\max(1, a - \Delta), \min(T, a + W_o + \Delta))$$
 
 $$\sum_{i: h_{ig}=1} s^x_i \cdot x_{it} \leq C_t \cdot y_{gt}$$
 
-**输出**: $y^*_{gt}$ 对于所有 $g, t$ (启动决策)
+**输出**: $y^{*}_{gt}$ 对于所有 $g, t$ (启动决策)
 
 ### 6.3 Stage 2: 求解跨期变量
 
@@ -366,7 +366,7 @@ $$\max \sum_{g \in \mathcal{G}} \sum_{t \in \mathcal{T}} \lambda_{gt}$$
 
 **(a) 固定启动**:
 
-$$y_{gt} = y^*_{gt}, \quad \forall g, t$$
+$$y_{gt} = y^{*}_{gt}, \quad \forall g, t$$
 
 **(b) 初始状态**:
 
@@ -378,23 +378,23 @@ $$\sum_{g \in \mathcal{G}} \lambda_{gt} \leq 1, \quad \forall t$$
 
 **(d) 跨期连续性**:
 
-$$2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}, \quad \forall g, \forall t \geq 2$$
+$$2\lambda_{gt} \leq y^{*}_{g,t-1} + y^{*}_{gt}, \quad \forall g, \forall t \geq 2$$
 
-> 只有当 $y^*_{g,t-1} = 1$ 且 $y^*_{gt} = 1$ 时，$\lambda_{gt}$ 才能为 1
+> 只有当 $y^{*}_{g,t-1} = 1$ 且 $y^{*}_{gt} = 1$ 时，$\lambda_{gt}$ 才能为 1
 
 **(e) 跨期排他性**:
 
-$$\lambda_{g,t-1} + \lambda_{gt} \leq 2 - \frac{1}{|\mathcal{G}|} \sum_{g' \neq g} y^*_{g',t-1}, \quad \forall g, \forall t \geq 3$$
+$$\lambda_{g,t-1} + \lambda_{gt} \leq 2 - \frac{1}{|\mathcal{G}|} \sum_{g' \neq g} y^{*}_{g',t-1}, \quad \forall g, \forall t \geq 3$$
 
-**输出**: $\lambda^*_{gt}$ 对于所有 $g, t$ (跨期决策)
+**输出**: $\lambda^{*}_{gt}$ 对于所有 $g, t$ (跨期决策)
 
 ### 6.4 Stage 3: 最终求解
 
 **目标**: 固定二元变量，求解连续变量的最优配置
 
 **固定规则**:
-- 若 $\lambda^*_{gt} = 1$，则 $y_{gt} = 0$ (跨期替代启动)
-- 否则 $y_{gt} = y^*_{gt}$
+- 若 $\lambda^{*}_{gt} = 1$，则 $y_{gt} = 0$ (跨期替代启动)
+- 否则 $y_{gt} = y^{*}_{gt}$
 
 **求解**: 完整的 MILP 模型，但 $(y, \lambda)$ 已固定，问题退化为 LP (若 $u$ 也固定) 或小规模 MIP
 
