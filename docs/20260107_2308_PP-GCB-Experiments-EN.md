@@ -1,3 +1,5 @@
+> 生成时间: 2026-01-07 23:08
+
 # Numerical Experiments for Production Planning with Grouping, Carryover, and Backlogging (PP-GCB)
 
 ## 1. Background

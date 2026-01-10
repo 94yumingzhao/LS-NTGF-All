@@ -8,7 +8,7 @@
 #include "optimizer.h"
 #include "logger.h"
 
-const double kCapacityExpansionFactor = 3.0;   // Stage 1 产能放大系数 (降低以增加连续启动)
+const double kCapacityExpansionFactor = 1.2;   // Stage 1 产能放大系数 (接近真实产能)
 const double kConsecutiveBonus = 50.0;         // 连续启动奖励系数
 
 // Stage 1: 固定 lambda=0, 放大产能, 求解 y* 启动结构
