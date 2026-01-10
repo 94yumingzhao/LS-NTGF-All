@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 300" font-family="Arial, sans-serif">
+  <!-- Background -->
+  <rect width="420" height="300" fill="#FAFAFA"/>
+
+  <!-- Title -->
+  <text x="210" y="22" font-size="12" text-anchor="middle" font-weight="bold" fill="#455A64">RR Algorithm: Three-Stage Decomposition</text>
+
+  <!-- Stage 1 box -->
+  <rect x="80" y="45" width="260" height="55" rx="8" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="210" y="67" font-size="11" text-anchor="middle" font-weight="bold" fill="white">Stage 1: Solve Setup Structure</text>
+  <text x="210" y="83" font-size="9" text-anchor="middle" fill="white">Fix L=0, optimize Y to get y*</text>
+
+  <!-- Output y* -->
+  <rect x="355" y="58" width="50" height="28" rx="4" fill="#E8F5E9" stroke="#2E7D32" stroke-width="1"/>
+  <text x="380" y="77" font-size="10" text-anchor="middle" font-weight="bold" fill="#2E7D32">y*</text>
+
+  <!-- Arrow 1->2 -->
+  <line x1="210" y1="100" x2="210" y2="130" stroke="#455A64" stroke-width="2"/>
+  <polygon points="210,130 205,120 215,120" fill="#455A64"/>
+
+  <!-- Stage 2 box -->
+  <rect x="80" y="135" width="260" height="55" rx="8" fill="#42A5F5" stroke="#1565C0" stroke-width="2"/>
+  <text x="210" y="157" font-size="11" text-anchor="middle" font-weight="bold" fill="white">Stage 2: Solve Carryover</text>
+  <text x="210" y="173" font-size="9" text-anchor="middle" fill="white">Fix y=y*, maximize sum(L) to get L*</text>
+
+  <!-- Output L* -->
+  <rect x="355" y="148" width="50" height="28" rx="4" fill="#E3F2FD" stroke="#1565C0" stroke-width="1"/>
+  <text x="380" y="167" font-size="10" text-anchor="middle" font-weight="bold" fill="#1565C0">L*</text>
+
+  <!-- Arrow 2->3 -->
+  <line x1="210" y1="190" x2="210" y2="220" stroke="#455A64" stroke-width="2"/>
+  <polygon points="210,220 205,210 215,210" fill="#455A64"/>
+
+  <!-- Stage 3 box -->
+  <rect x="80" y="225" width="260" height="55" rx="8" fill="#FF9800" stroke="#F57C00" stroke-width="2"/>
+  <text x="210" y="247" font-size="11" text-anchor="middle" font-weight="bold" fill="white">Stage 3: Final Solve</text>
+  <text x="210" y="263" font-size="9" text-anchor="middle" fill="white">Fix y*, L*, solve for x*, I*, b*, u*</text>
+
+  <!-- Output final -->
+  <rect x="355" y="232" width="55" height="40" rx="4" fill="#FFF3E0" stroke="#F57C00" stroke-width="1"/>
+  <text x="382" y="248" font-size="9" text-anchor="middle" font-weight="bold" fill="#F57C00">x*, I*</text>
+  <text x="382" y="262" font-size="9" text-anchor="middle" font-weight="bold" fill="#F57C00">b*, u*</text>
+
+  <!-- Data flow arrows to outputs -->
+  <line x1="340" y1="72" x2="353" y2="72" stroke="#2E7D32" stroke-width="1.5"/>
+  <polygon points="353,72 347,68 347,76" fill="#2E7D32"/>
+
+  <line x1="340" y1="162" x2="353" y2="162" stroke="#1565C0" stroke-width="1.5"/>
+  <polygon points="353,162 347,158 347,166" fill="#1565C0"/>
+
+  <line x1="340" y1="252" x2="353" y2="252" stroke="#F57C00" stroke-width="1.5"/>
+  <polygon points="353,252 347,248 347,256" fill="#F57C00"/>
+
+  <!-- Left side: input arrows -->
+  <text x="50" y="77" font-size="9" text-anchor="middle" fill="#78909C">Input</text>
+  <line x1="65" y1="72" x2="78" y2="72" stroke="#78909C" stroke-width="1"/>
+  <polygon points="78,72 72,68 72,76" fill="#78909C"/>
+
+  <text x="50" y="162" font-size="8" text-anchor="middle" fill="#78909C">y*</text>
+  <line x1="65" y1="162" x2="78" y2="162" stroke="#78909C" stroke-width="1"/>
+  <polygon points="78,162 72,158 72,166" fill="#78909C"/>
+
+  <text x="50" y="252" font-size="8" text-anchor="middle" fill="#78909C">y*, L*</text>
+  <line x1="65" y1="252" x2="78" y2="252" stroke="#78909C" stroke-width="1"/>
+  <polygon points="78,252 72,248 72,256" fill="#78909C"/>
+</svg>

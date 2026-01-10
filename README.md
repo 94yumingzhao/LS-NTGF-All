@@ -33,7 +33,6 @@
 
 ### 附录
 
-- [超参数配置参考](#超参数配置参考)
 - [数值容差](#数值容差)
 
 ---
@@ -59,14 +58,9 @@
 
 连铸生产中, 不同钢种需要不同的结晶器配置。更换结晶器(启动)需要耗费大量时间和成本。相似钢种可以归为一个"产品族", 在连续时间段内生产同族钢种可以避免频繁换产。
 
-```
-时间轴:  |--周期1--|--周期2--|--周期3--|--周期4--|
+![图 1: 启动跨期时间轴](images/fig1_setup_carryover_timeline.svg)
 
-产品族A: [启动]---[跨期]---[       ]---[启动]---
-产品族B: [       ]---[启动]---[跨期]---[       ]---
-
-说明: 周期2的产品族A"跨期"意味着保持周期1的启动状态, 无需重新启动
-```
+<p align="center"><b>图 1: 产品族启动与跨期时间轴示意</b></p>
 
 **场景二: 化工行业批次生产**
 
@@ -138,17 +132,9 @@ SMT贴片线切换产品需要更换吸嘴、供料器等。相似BOM的产品�
 
 启动跨期(Setup Carryover)是本问题的核心特征, 允许在相邻周期间保持启动状态:
 
-```
-时间轴示意:
+![图 2: 启动跨期机制](images/fig2_setup_carryover_mechanism.svg)
 
-周期:     t=1        t=2        t=3        t=4        t=5
-          |          |          |          |          |
-族G1:   [Y=1]----->[L=1]----->[L=1]----->[ 0 ]----->[Y=1]
-          启动       跨期       跨期       无生产      重新启动
-
-族G2:   [ 0 ]----->[Y=1]----->[ 0 ]----->[Y=1]----->[L=1]
-         无生产      启动       无生产      启动       跨期
-```
+<p align="center"><b>图 2: Y/L 变量状态转换示意</b></p>
 
 **跨期条件**:
 1. 当期要跨期, 前期必须有启动或跨期
@@ -161,13 +147,9 @@ SMT贴片线切换产品需要更换吸嘴、供料器等。相似BOM的产品�
 
 产品完成生产后流向不同的下游工序, 形成"流向"分类:
 
-```
-                    +---> 流向 F1 (精馏) ---> 产能限制 D_{1t}
-                    |
-[生产完成] ---------+---> 流向 F2 (干燥) ---> 产能限制 D_{2t}
-                    |
-                    +---> 流向 F3 (包装) ---> 产能限制 D_{3t}
-```
+![图 3: 下游流向约束](images/fig3_downstream_flow.svg)
+
+<p align="center"><b>图 3: 生产到下游流向的分叉结构</b></p>
 
 **流平衡**: 每个流向有独立的在制品库存, 满足:
 
@@ -363,12 +345,9 @@ $$x_{it} \geq 0, \quad y_{gt} \in \{0, 1\}, \quad \lambda_{gt} \in \{0, 1\}, \qu
 3. 求解子问题后, 固定窗口内的解, 滑动窗口向前推进
 4. 迭代直到所有周期都被固定
 
-```
-时间轴:  |---已固定区---|---当前窗口---|---放松区---|
-         t=1,...,k-1    t=k,...,k+W-1  t=k+W,...,T
+![图 4: RF时间分解](images/fig4_rf_time_decomposition.svg)
 
-变量类型:   固定值        二元变量       连续松弛
-```
+<p align="center"><b>图 4: RF 算法时间轴三区域划分</b></p>
 
 ### 6.2 算法参数
 
@@ -526,15 +505,9 @@ $$WND^{+}(a) = [\max(1, a - \Delta), \min(T, a + W_o + \Delta))$$
 2. **Stage 2**: 固定 $y^{*}$, 最大化跨期变量 $\lambda^{*}$
 3. **Stage 3**: 固定 $y^{*}$ 和 $\lambda^{*}$, 求解最终生产计划
 
-```
-Stage 1: 确定"何时启动哪个族"
-    |
-    v
-Stage 2: 在启动结构下"尽可能利用跨期"
-    |
-    v
-Stage 3: 在固定的启动和跨期下"确定具体生产量"
-```
+![图 5: RR三阶段分解](images/fig5_rr_three_stages.svg)
+
+<p align="center"><b>图 5: RR 算法三阶段分解流程</b></p>
 
 ### 8.2 Stage 1: 求解启动结构
 
@@ -669,16 +642,9 @@ Big-M 约束 $\sum_i s^{x}_{i} x_{it} \leq C_t (y_{gt} + \lambda_{gt})$ 是模�
 
 跨期约束 (7)-(9) 形成时间上的耦合:
 
-```
-t=1      t=2      t=3      t=4      ...
-y[g,1]   y[g,2]   y[g,3]   y[g,4]
-  |        |        |        |
-  +---->L[g,2]     |        |
-           |        |        |
-           +---->L[g,3]     |
-                    |        |
-                    +---->L[g,4]
-```
+![图 6: 跨期约束耦合](images/fig6_carryover_coupling.svg)
+
+<p align="center"><b>图 6: Y-L 变量链式依赖结构</b></p>
 
 这种链式结构使得:
 - 早期周期的启动决策影响后续所有周期的跨期可能性
@@ -1103,45 +1069,6 @@ JSON 结果文件包含:
 ---
 
 # 附录
-
-## 超参数配置参考
-
-### RF 参数
-
-```cpp
-constexpr int kRFWindowSize = 6;       // W: 窗口长度
-constexpr int kRFFixStep = 1;          // S: 固定步长
-constexpr int kRFMaxRetries = 3;       // R: 最大扩展重试次数
-constexpr double kRFSubproblemTimeLimit = 60.0;  // 子问题时间限制
-```
-
-### FO 参数 (RFO)
-
-```cpp
-constexpr int kFOWindowSize = 8;       // W_o: FO窗口长度
-constexpr int kFOStep = 3;             // S_o: FO步长
-constexpr int kFOMaxRounds = 2;        // H: 最大优化轮数
-constexpr int kFOBoundaryBuffer = 1;   // Delta: 边界缓冲
-constexpr double kFOSubproblemTimeLimit = 30.0;  // FO子问题时间限制
-```
-
-### RR 参数
-
-```cpp
-constexpr double kCapacityExpansionFactor = 1.0;  // 产能放大系数 (建议 1.0-3.0)
-constexpr double kStage1TimeLimit = 600.0;        // Stage 1 时间限制
-constexpr double kStage2TimeLimit = 60.0;         // Stage 2 时间限制
-constexpr double kStage3TimeLimit = 120.0;        // Stage 3 时间限制
-```
-
-### CPLEX 参数
-
-```cpp
-constexpr double kDefaultCplexTimeLimit = 30.0;  // 总时间限制
-// cplex_threads = 0 (自动)
-// cplex_workmem = 4096 MB
-// MIP Strategy File = 3 (节点文件存储)
-```
 
 ## 数值容差
 

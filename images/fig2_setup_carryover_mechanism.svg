@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 220" font-family="Arial, sans-serif">
+  <!-- Background -->
+  <rect width="640" height="220" fill="#FAFAFA"/>
+
+  <!-- Title -->
+  <text x="320" y="18" font-size="12" text-anchor="middle" font-weight="bold" fill="#455A64">Setup and Carryover Mechanism (Y/L Variables)</text>
+
+  <!-- Period labels -->
+  <text x="80" y="45" font-size="10" text-anchor="middle" fill="#455A64" font-weight="bold">t=1</text>
+  <text x="180" y="45" font-size="10" text-anchor="middle" fill="#455A64" font-weight="bold">t=2</text>
+  <text x="280" y="45" font-size="10" text-anchor="middle" fill="#455A64" font-weight="bold">t=3</text>
+  <text x="380" y="45" font-size="10" text-anchor="middle" fill="#455A64" font-weight="bold">t=4</text>
+  <text x="480" y="45" font-size="10" text-anchor="middle" fill="#455A64" font-weight="bold">t=5</text>
+
+  <!-- Row label G1 -->
+  <text x="25" y="85" font-size="11" text-anchor="middle" font-weight="bold" fill="#2E7D32">G1</text>
+
+  <!-- G1 t=1: Y=1 (Setup) -->
+  <circle cx="80" cy="80" r="22" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="80" y="77" font-size="9" text-anchor="middle" font-weight="bold" fill="white">Y=1</text>
+  <text x="80" y="88" font-size="8" text-anchor="middle" fill="white">Setup</text>
+
+  <!-- G1 t=2: L=1 (Carryover) -->
+  <circle cx="180" cy="80" r="22" fill="#42A5F5" stroke="#1565C0" stroke-width="2"/>
+  <text x="180" y="77" font-size="9" text-anchor="middle" font-weight="bold" fill="white">L=1</text>
+  <text x="180" y="88" font-size="8" text-anchor="middle" fill="white">Carry</text>
+
+  <!-- Arrow G1: t=1 -> t=2 -->
+  <line x1="102" y1="80" x2="156" y2="80" stroke="#78909C" stroke-width="1.5"/>
+  <polygon points="156,80 148,76 148,84" fill="#78909C"/>
+
+  <!-- G1 t=3: L=1 (Carryover) -->
+  <circle cx="280" cy="80" r="22" fill="#42A5F5" stroke="#1565C0" stroke-width="2"/>
+  <text x="280" y="77" font-size="9" text-anchor="middle" font-weight="bold" fill="white">L=1</text>
+  <text x="280" y="88" font-size="8" text-anchor="middle" fill="white">Carry</text>
+
+  <!-- Arrow G1: t=2 -> t=3 -->
+  <line x1="202" y1="80" x2="256" y2="80" stroke="#78909C" stroke-width="1.5"/>
+  <polygon points="256,80 248,76 248,84" fill="#78909C"/>
+
+  <!-- G1 t=4: 0 (Idle) -->
+  <circle cx="380" cy="80" r="22" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1.5"/>
+  <text x="380" y="77" font-size="9" text-anchor="middle" fill="#78909C">Y=0</text>
+  <text x="380" y="88" font-size="8" text-anchor="middle" fill="#78909C">Idle</text>
+
+  <!-- G1 t=5: Y=1 (Setup) -->
+  <circle cx="480" cy="80" r="22" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="480" y="77" font-size="9" text-anchor="middle" font-weight="bold" fill="white">Y=1</text>
+  <text x="480" y="88" font-size="8" text-anchor="middle" fill="white">Setup</text>
+
+  <!-- Break mark between t=3 and t=4 for G1 -->
+  <text x="330" y="75" font-size="14" text-anchor="middle" fill="#EF5350">X</text>
+
+  <!-- Row label G2 -->
+  <text x="25" y="155" font-size="11" text-anchor="middle" font-weight="bold" fill="#1565C0">G2</text>
+
+  <!-- G2 t=1: 0 (Idle) -->
+  <circle cx="80" cy="150" r="22" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1.5"/>
+  <text x="80" y="147" font-size="9" text-anchor="middle" fill="#78909C">Y=0</text>
+  <text x="80" y="158" font-size="8" text-anchor="middle" fill="#78909C">Idle</text>
+
+  <!-- G2 t=2: Y=1 (Setup) -->
+  <circle cx="180" cy="150" r="22" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="180" y="147" font-size="9" text-anchor="middle" font-weight="bold" fill="white">Y=1</text>
+  <text x="180" y="158" font-size="8" text-anchor="middle" fill="white">Setup</text>
+
+  <!-- G2 t=3: 0 (Idle) -->
+  <circle cx="280" cy="150" r="22" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1.5"/>
+  <text x="280" y="147" font-size="9" text-anchor="middle" fill="#78909C">Y=0</text>
+  <text x="280" y="158" font-size="8" text-anchor="middle" fill="#78909C">Idle</text>
+
+  <!-- G2 t=4: Y=1 (Setup) -->
+  <circle cx="380" cy="150" r="22" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <text x="380" y="147" font-size="9" text-anchor="middle" font-weight="bold" fill="white">Y=1</text>
+  <text x="380" y="158" font-size="8" text-anchor="middle" fill="white">Setup</text>
+
+  <!-- G2 t=5: L=1 (Carryover) -->
+  <circle cx="480" cy="150" r="22" fill="#42A5F5" stroke="#1565C0" stroke-width="2"/>
+  <text x="480" y="147" font-size="9" text-anchor="middle" font-weight="bold" fill="white">L=1</text>
+  <text x="480" y="158" font-size="8" text-anchor="middle" fill="white">Carry</text>
+
+  <!-- Arrow G2: t=4 -> t=5 -->
+  <line x1="402" y1="150" x2="456" y2="150" stroke="#78909C" stroke-width="1.5"/>
+  <polygon points="456,150 448,146 448,154" fill="#78909C"/>
+
+  <!-- Legend -->
+  <g transform="translate(520, 60)">
+    <text x="0" y="0" font-size="10" font-weight="bold" fill="#455A64">Legend</text>
+    <circle cx="10" cy="18" r="8" fill="#4CAF50" stroke="#2E7D32" stroke-width="1"/>
+    <text x="25" y="22" font-size="9" fill="#455A64">Setup (Y=1)</text>
+    <circle cx="10" cy="40" r="8" fill="#42A5F5" stroke="#1565C0" stroke-width="1"/>
+    <text x="25" y="44" font-size="9" fill="#455A64">Carryover (L=1)</text>
+    <circle cx="10" cy="62" r="8" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1"/>
+    <text x="25" y="66" font-size="9" fill="#455A64">Idle</text>
+    <line x1="2" y1="82" x2="18" y2="82" stroke="#78909C" stroke-width="1.5"/>
+    <polygon points="18,82 14,79 14,85" fill="#78909C"/>
+    <text x="25" y="86" font-size="9" fill="#455A64">State transfer</text>
+    <text x="10" y="105" font-size="12" text-anchor="middle" fill="#EF5350">X</text>
+    <text x="25" y="108" font-size="9" fill="#455A64">Break</text>
+  </g>
+</svg>
