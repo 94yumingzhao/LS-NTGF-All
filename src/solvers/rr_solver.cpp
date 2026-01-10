@@ -8,7 +8,8 @@
 #include "optimizer.h"
 #include "logger.h"
 
-const double kCapacityExpansionFactor = 10.0;  // Stage 1 产能放大系数 (alpha >> 1)
+const double kCapacityExpansionFactor = 3.0;   // Stage 1 产能放大系数 (降低以增加连续启动)
+const double kConsecutiveBonus = 50.0;         // 连续启动奖励系数
 
 // Stage 1: 固定 lambda=0, 放大产能, 求解 y* 启动结构
 void SolveStep1(AllValues& values, AllLists& lists) {
@@ -34,6 +35,12 @@ void SolveStep1(AllValues& values, AllLists& lists) {
 
         for (int g = 0; g < values.number_of_groups; g++) {
             Y[g] = IloNumVarArray(env, values.number_of_periods, 0, 1, ILOBOOL);
+        }
+
+        // Z[g][t] = Y[g][t-1] * Y[g][t] 的线性化辅助变量（连续启动指示）
+        IloArray<IloNumVarArray> Z(env, values.number_of_groups);
+        for (int g = 0; g < values.number_of_groups; g++) {
+            Z[g] = IloNumVarArray(env, values.number_of_periods, 0, 1, ILOBOOL);
         }
 
         for (int f = 0; f < values.number_of_flows; f++) {
@@ -68,6 +75,13 @@ void SolveStep1(AllValues& values, AllLists& lists) {
 
         for (int i = 0; i < values.number_of_items; i++) {
             objective += lists.cost_u[i] * U[i];
+        }
+
+        // 连续启动奖励（负值减少目标函数，鼓励连续启动）
+        for (int g = 0; g < values.number_of_groups; g++) {
+            for (int t = 1; t < values.number_of_periods; t++) {
+                objective -= kConsecutiveBonus * Z[g][t];
+            }
         }
 
         model.add(IloMinimize(env, objective));
@@ -108,6 +122,16 @@ void SolveStep1(AllValues& values, AllLists& lists) {
                 }
                 model.add(family_production <= capacity_big * Y[g][t]);
                 family_production.end();
+            }
+        }
+
+        // Z[g][t] = Y[g][t-1] * Y[g][t] 线性化约束
+        for (int g = 0; g < values.number_of_groups; g++) {
+            model.add(Z[g][0] == 0);  // t=0 没有前一周期
+            for (int t = 1; t < values.number_of_periods; t++) {
+                model.add(Z[g][t] <= Y[g][t - 1]);
+                model.add(Z[g][t] <= Y[g][t]);
+                model.add(Z[g][t] >= Y[g][t - 1] + Y[g][t] - 1);
             }
         }
 
