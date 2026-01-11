@@ -150,7 +150,7 @@ static bool SolveRFSubproblem(
             capacity.end();
         }
 
-        // 家族 Big-M 约束
+        // 产品大类 Big-M 约束
         for (int g = 0; g < G; g++) {
             for (int t = 0; t < T; t++) {
                 IloExpr family_production(env);
@@ -592,7 +592,7 @@ static bool SolveFOSubproblem(
             capacity.end();
         }
 
-        // 家族 Big-M 约束
+        // 产品大类 Big-M 约束
         for (int g = 0; g < G; g++) {
             for (int t = 0; t < T; t++) {
                 IloExpr family_production(env);

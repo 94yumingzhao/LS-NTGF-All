@@ -171,7 +171,7 @@ static bool SolveRFSubproblem(
             capacity.end();
         }
 
-        // 约束3: 家族级 Big-M 约束 (含 carryover)
+        // 约束3: 产品大类级 Big-M 约束 (含 carryover)
         for (int g = 0; g < G; g++) {
             for (int t = 0; t < T; t++) {
                 IloExpr family_production(env);

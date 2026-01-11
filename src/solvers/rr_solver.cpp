@@ -111,7 +111,7 @@ void SolveStep1(AllValues& values, AllLists& lists) {
             capacity.end();
         }
 
-        // 家族级 Big-M 约束
+        // 产品大类级 Big-M 约束
         for (int g = 0; g < values.number_of_groups; g++) {
             for (int t = 0; t < values.number_of_periods; t++) {
                 IloExpr family_production(env);
@@ -593,7 +593,7 @@ void SolveStep3(AllValues& values, AllLists& lists) {
             capacity.end();
         }
 
-        // 家族级 Setup 约束（含 carryover）
+        // 产品大类级 Setup 约束（含 carryover）
         for (int g = 0; g < values.number_of_groups; ++g) {
             for (int t = 0; t < values.number_of_periods; ++t) {
                 IloExpr family_production(env);

@@ -124,7 +124,7 @@ void SolveCplexLotSizing(AllValues& values, AllLists& lists, const string& outpu
             capacity.end();
         }
 
-        // 约束(6.1): 家族生产需要setup或carryover
+        // 约束(6.1): 产品大类生产需要setup或carryover
         // sum_{i:h_ig=1} s_x[i]*x_it <= C_t*(y_gt + lambda_gt)
         for (int g = 0; g < values.number_of_groups; ++g) {
             for (int t = 0; t < values.number_of_periods; ++t) {
