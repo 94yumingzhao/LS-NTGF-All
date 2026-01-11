@@ -45,8 +45,8 @@
   <text x="450" y="130" font-size="9" text-anchor="middle" fill="#1565C0">y, L relaxed to</text>
   <text x="450" y="142" font-size="9" text-anchor="middle" font-weight="bold" fill="#1565C0">continuous [0,1]</text>
 
-  <!-- Sliding arrow -->
-  <path d="M 280 35 Q 330 25 380 35" stroke="#EF5350" stroke-width="1.5" fill="none" stroke-dasharray="4,2"/>
-  <polygon points="380,35 374,28 370,37" fill="#EF5350"/>
-  <text x="330" y="22" font-size="8" fill="#EF5350">slide</text>
+  <!-- Sliding arrow (straight line, positioned below title) -->
+  <line x1="280" y1="38" x2="375" y2="38" stroke="#EF5350" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <polygon points="380,38 372,34 372,42" fill="#EF5350"/>
+  <text x="330" y="35" font-size="8" fill="#EF5350">slide</text>
 </svg>
