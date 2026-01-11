@@ -228,13 +228,13 @@ $$\text{当期产出} + \text{期初库存} = \text{下游处理量} + \text{期
 | $d_i$ | 订单 $i$ 的需求量 | - |
 | $e_i$ | 订单 $i$ 的最早生产期 | - |
 | $l_i$ | 订单 $i$ 的最晚交付期 | - |
-| $c^{x}_{i}$ | 订单 $i$ 的单位生产成本 | - |
-| $c^{y}_{g}$ | 产品大类 $g$ 的启动成本 | - |
-| $c^{I}_{f}$ | 流向 $f$ 的单位库存持有成本 | - |
+| $c_i^x$ | 订单 $i$ 的单位生产成本 | - |
+| $c_g^y$ | 产品大类 $g$ 的启动成本 | - |
+| $c_f^I$ | 流向 $f$ 的单位库存持有成本 | - |
 | $c^{b}$ | 单位欠交惩罚 | 100 |
 | $c^{u}$ | 未满足惩罚 | 10000 |
-| $s^{x}_{i}$ | 订单 $i$ 的单位产能消耗 | - |
-| $s^{y}_{g}$ | 产品大类 $g$ 的启动产能消耗 | - |
+| $s_i^x$ | 订单 $i$ 的单位产能消耗 | - |
+| $s_g^y$ | 产品大类 $g$ 的启动产能消耗 | - |
 | $C_t$ | 周期 $t$ 的总产能 | 1440 |
 | $D_{ft}$ | 流向 $f$ 在周期 $t$ 的下游处理能力 | - |
 | $h_{ig}$ | 订单-族归属: 订单 $i$ 属于族 $g$ 则为 1 | - |
@@ -260,7 +260,7 @@ $$\text{当期产出} + \text{期初库存} = \text{下游处理量} + \text{期
 
 最小化总成本 = 生产成本 + 启动成本 + 库存成本 + 欠交惩罚 + 未满足惩罚
 
-$$\min Z = \sum_{i \in \mathcal{I}} \sum_{t \in \mathcal{T}} c^{x}_{i} x_{it} + \sum_{g \in \mathcal{G}} \sum_{t \in \mathcal{T}} c^{y}_{g} y_{gt} + \sum_{f \in \mathcal{F}} \sum_{t \in \mathcal{T}} c^{I}_{f} I_{ft} + \sum_{i \in \mathcal{I}} \sum_{t \geq l_i} c^{b} b_{it} + \sum_{i \in \mathcal{I}} c^{u} u_i$$
+$$\min Z = \sum_{i \in \mathcal{I}} \sum_{t \in \mathcal{T}} c_i^x x_{it} + \sum_{g \in \mathcal{G}} \sum_{t \in \mathcal{T}} c_g^y y_{gt} + \sum_{f \in \mathcal{F}} \sum_{t \in \mathcal{T}} c_f^I I_{ft} + \sum_{i \in \mathcal{I}} \sum_{t \geq l_i} c^{b} b_{it} + \sum_{i \in \mathcal{I}} c^{u} u_i$$
 
 ### 5.2 约束条件
 
@@ -288,11 +288,11 @@ $$d_i \cdot u_i \geq b_{i,T}, \quad \forall i \in \mathcal{I}$$
 
 **约束(5): 总产能约束**
 
-$$\sum_{i \in \mathcal{I}} s^{x}_{i} \cdot x_{it} + \sum_{g \in \mathcal{G}} s^{y}_{g} \cdot y_{gt} \leq C_t, \quad \forall t \in \mathcal{T}$$
+$$\sum_{i \in \mathcal{I}} s_i^x \cdot x_{it} + \sum_{g \in \mathcal{G}} s_g^y \cdot y_{gt} \leq C_t, \quad \forall t \in \mathcal{T}$$
 
 **约束(6): 产品大类启动约束 (Big-M)**
 
-$$\sum_{i: h_{ig}=1} s^{x}_{i} \cdot x_{it} \leq C_t \cdot (y_{gt} + \lambda_{gt}), \quad \forall g \in \mathcal{G}, \forall t \in \mathcal{T}$$
+$$\sum_{i: h_{ig}=1} s_i^x \cdot x_{it} \leq C_t \cdot (y_{gt} + \lambda_{gt}), \quad \forall g \in \mathcal{G}, \forall t \in \mathcal{T}$$
 
 族 $g$ 在周期 $t$ 要生产, 必须有启动或跨期。
 
@@ -518,9 +518,9 @@ $$WND^{+}(a) = [\max(1, a - \Delta), \min(T, a + W_o + \Delta))$$
 - 产能可选择放大 (默认系数 1.0, 不放大)
 - Big-M 约束简化为:
 
-$$\sum_{i: h_{ig}=1} s^{x}_{i} \cdot x_{it} \leq C_t \cdot y_{gt}$$
+$$\sum_{i: h_{ig}=1} s_i^x \cdot x_{it} \leq C_t \cdot y_{gt}$$
 
-**输出**: $y^{*}_{gt}$ 对于所有 $g, t$ (启动决策)
+**输出**: $y_{gt}^*$ 对于所有 $g, t$ (启动决策)
 
 ### 8.3 Stage 2: 求解跨期变量
 
@@ -532,7 +532,7 @@ $$\max \sum_{g \in \mathcal{G}} \sum_{t \in \mathcal{T}} \lambda_{gt}$$
 
 **(a) 固定启动**:
 
-$$y_{gt} = y^{*}_{gt}, \quad \forall g, t$$
+$$y_{gt} = y_{gt}^*, \quad \forall g, t$$
 
 **(b) 初始状态**:
 
@@ -544,23 +544,23 @@ $$\sum_{g \in \mathcal{G}} \lambda_{gt} \leq 1, \quad \forall t$$
 
 **(d) 跨期连续性**:
 
-$$2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}, \quad \forall g, \forall t \geq 2$$
+$$2\lambda_{gt} \leq y_{g,t-1}^* + y_{gt}^*, \quad \forall g, \forall t \geq 2$$
 
-只有当 $y^*_{g,t-1} = 1$ 且 $y^*_{gt} = 1$ 时, $\lambda_{gt}$ 才能为 1。
+只有当 $y_{g,t-1}^* = 1$ 且 $y_{gt}^* = 1$ 时, $\lambda_{gt}$ 才能为 1。
 
-**输出**: $\lambda^*_{gt}$ 对于所有 $g, t$ (跨期决策)
+**输出**: $\lambda_{gt}^*$ 对于所有 $g, t$ (跨期决策)
 
 ### 8.4 Stage 3: 最终求解
 
 **目标**: 固定二元变量, 求解连续变量的最优配置
 
 **固定规则**:
-- 若 $\lambda^*_{gt} = 1$, 则 $y_{gt} = 0$ (跨期替代启动)
-- 否则 $y_{gt} = y^*_{gt}$
+- 若 $\lambda_{gt}^* = 1$, 则 $y_{gt} = 0$ (跨期替代启动)
+- 否则 $y_{gt} = y_{gt}^*$
 
 **求解**: 完整的 MILP 模型, 但 $(y, \lambda)$ 已固定, 问题退化为 LP 或小规模 MIP
 
-**输出**: 完整的生产计划 $(x^*, I^*, P^*, b^*, u^*)$
+**输出**: 完整的生产计划 $(x^* , I^* , P^* , b^* , u^* )$
 
 ### 8.5 算法流程
 
@@ -593,7 +593,7 @@ $$2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}, \quad \forall g, \forall t \geq 2$$
 **原因分析**:
 - Stage 1 如果使用产能放大策略, 会导致启动稀疏
 - 启动稀疏意味着很少有连续两个周期对同一族启动
-- Stage 2 的跨期条件 $2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}$ 要求连续启动
+- Stage 2 的跨期条件 $2\lambda_{gt} \leq y_{g,t-1}^* + y_{gt}^*$ 要求连续启动
 - 无连续启动则无跨期机会
 
 **修复方案**:
@@ -632,7 +632,7 @@ $$2\lambda_{gt} \leq y^*_{g,t-1} + y^*_{gt}, \quad \forall g, \forall t \geq 2$$
 
 ### 9.2 Big-M 约束的影响
 
-Big-M 约束 $\sum_i s^{x}_{i} x_{it} \leq C_t (y_{gt} + \lambda_{gt})$ 是模型的核心:
+Big-M 约束 $\sum_i s_i^x x_{it} \leq C_t (y_{gt} + \lambda_{gt})$ 是模型的核心:
 
 - **当 $y_{gt} + \lambda_{gt} = 0$**: 该族不能生产任何产品
 - **当 $y_{gt} + \lambda_{gt} = 1$**: 产能上限为 $C_t$, 与总产能约束一致
