@@ -8,13 +8,11 @@
 #include "optimizer.h"
 #include "logger.h"
 
-const double kCapacityExpansionFactor = 1.2;   // Stage 1 产能放大系数 (接近真实产能)
-const double kConsecutiveBonus = 50.0;         // 连续启动奖励系数
-
 // Stage 1: 固定 lambda=0, 放大产能, 求解 y* 启动结构
 void SolveStep1(AllValues& values, AllLists& lists) {
     LOG("\n[阶段1] 求解启动结构（扩大产能）...");
-    LOG_FMT("  产能放大系数 = %.1fx\n", kCapacityExpansionFactor);
+    LOG_FMT("  产能放大系数 = %.2fx，连续启动奖励 = %.1f\n",
+            values.rr_capacity, values.rr_bonus);
 
     try {
         IloEnv env;
@@ -80,7 +78,7 @@ void SolveStep1(AllValues& values, AllLists& lists) {
         // 连续启动奖励（负值减少目标函数，鼓励连续启动）
         for (int g = 0; g < values.number_of_groups; g++) {
             for (int t = 1; t < values.number_of_periods; t++) {
-                objective -= kConsecutiveBonus * Z[g][t];
+                objective -= values.rr_bonus * Z[g][t];  // 使用动态参数
             }
         }
 
@@ -98,7 +96,7 @@ void SolveStep1(AllValues& values, AllLists& lists) {
         }
 
         // 产能约束（放大）
-        double capacity_big = values.machine_capacity * kCapacityExpansionFactor;
+        double capacity_big = values.machine_capacity * values.rr_capacity;  // 使用动态参数
         for (int t = 0; t < values.number_of_periods; t++) {
             IloExpr capacity(env);
             for (int i = 0; i < values.number_of_items; i++) {

@@ -60,6 +60,22 @@ struct CommandLineArgs {
     string cplex_workdir = "D:\\CPLEX_Temp";
     int cplex_workmem = 4096;
     int cplex_threads = 0;
+    // Machine capacity
+    int machine_capacity = 1440;
+    // RF algorithm parameters
+    int rf_window = 6;
+    int rf_step = 1;
+    double rf_time = 60.0;
+    int rf_retries = 3;
+    // FO algorithm parameters (for RFO)
+    int fo_window = 8;
+    int fo_step = 3;
+    int fo_rounds = 2;
+    int fo_buffer = 1;
+    double fo_time = 30.0;
+    // RR algorithm parameters
+    double rr_capacity = 1.2;
+    double rr_bonus = 50.0;
 };
 
 // ============================================================================
@@ -71,7 +87,7 @@ void PrintUsage(const char* program) {
     cout << "  --algo=RF           Relax-and-Fix (default)\n";
     cout << "  --algo=RFO          RF + Fix-and-Optimize\n";
     cout << "  --algo=RR           Relax-and-Recover 3-stage decomposition\n";
-    cout << "\nOptions:\n";
+    cout << "\nBasic Options:\n";
     cout << "  -f, --file <path>       Input data file\n";
     cout << "  -o, --output <dir>      Output directory (default: ./results)\n";
     cout << "  -l, --log <file>        Log file path (default: ./logs/solve.log)\n";
@@ -80,14 +96,31 @@ void PrintUsage(const char* program) {
     cout << "  --b-penalty <int>       Backorder penalty (default: 100)\n";
     cout << "  --threshold <double>    Big order threshold (default: 1000)\n";
     cout << "  --no-merge              Disable order merging\n";
+    cout << "  --capacity <int>        Machine capacity per period (default: 1440)\n";
+    cout << "\nCPLEX Options:\n";
     cout << "  --cplex-workdir <path>  CPLEX work directory (default: D:\\CPLEX_Temp)\n";
     cout << "  --cplex-workmem <MB>    CPLEX work memory limit (default: 4096)\n";
     cout << "  --cplex-threads <num>   CPLEX thread count, 0=auto (default: 0)\n";
+    cout << "\nRF Algorithm Options:\n";
+    cout << "  --rf-window <int>       RF window size (default: 6)\n";
+    cout << "  --rf-step <int>         RF fix step (default: 1)\n";
+    cout << "  --rf-time <double>      RF subproblem time limit (default: 60.0)\n";
+    cout << "  --rf-retries <int>      RF max retries (default: 3)\n";
+    cout << "\nFO Algorithm Options (for RFO):\n";
+    cout << "  --fo-window <int>       FO window size (default: 8)\n";
+    cout << "  --fo-step <int>         FO step size (default: 3)\n";
+    cout << "  --fo-rounds <int>       FO max rounds (default: 2)\n";
+    cout << "  --fo-buffer <int>       FO boundary buffer (default: 1)\n";
+    cout << "  --fo-time <double>      FO subproblem time limit (default: 30.0)\n";
+    cout << "\nRR Algorithm Options:\n";
+    cout << "  --rr-capacity <double>  RR capacity expansion factor (default: 1.2)\n";
+    cout << "  --rr-bonus <double>     RR consecutive startup bonus (default: 50.0)\n";
+    cout << "\nOther Options:\n";
     cout << "  -h, --help              Show this help message\n";
     cout << "\nExamples:\n";
     cout << "  " << program << " --algo=RF data.csv\n";
-    cout << "  " << program << " --algo=RFO -t 60 data.csv\n";
-    cout << "  " << program << " --algo=RR --output=./out data.csv\n";
+    cout << "  " << program << " --algo=RFO -t 60 --rf-window 8 data.csv\n";
+    cout << "  " << program << " --algo=RR --rr-capacity 1.5 data.csv\n";
 }
 
 // ============================================================================
@@ -135,6 +168,30 @@ bool ParseArgs(int argc, char* argv[], CommandLineArgs& args) {
             args.cplex_workmem = atoi(argv[++i]);
         } else if (arg == "--cplex-threads" && i + 1 < argc) {
             args.cplex_threads = atoi(argv[++i]);
+        } else if (arg == "--capacity" && i + 1 < argc) {
+            args.machine_capacity = atoi(argv[++i]);
+        } else if (arg == "--rf-window" && i + 1 < argc) {
+            args.rf_window = atoi(argv[++i]);
+        } else if (arg == "--rf-step" && i + 1 < argc) {
+            args.rf_step = atoi(argv[++i]);
+        } else if (arg == "--rf-time" && i + 1 < argc) {
+            args.rf_time = atof(argv[++i]);
+        } else if (arg == "--rf-retries" && i + 1 < argc) {
+            args.rf_retries = atoi(argv[++i]);
+        } else if (arg == "--fo-window" && i + 1 < argc) {
+            args.fo_window = atoi(argv[++i]);
+        } else if (arg == "--fo-step" && i + 1 < argc) {
+            args.fo_step = atoi(argv[++i]);
+        } else if (arg == "--fo-rounds" && i + 1 < argc) {
+            args.fo_rounds = atoi(argv[++i]);
+        } else if (arg == "--fo-buffer" && i + 1 < argc) {
+            args.fo_buffer = atoi(argv[++i]);
+        } else if (arg == "--fo-time" && i + 1 < argc) {
+            args.fo_time = atof(argv[++i]);
+        } else if (arg == "--rr-capacity" && i + 1 < argc) {
+            args.rr_capacity = atof(argv[++i]);
+        } else if (arg == "--rr-bonus" && i + 1 < argc) {
+            args.rr_bonus = atof(argv[++i]);
         } else if (arg[0] != '-' && args.input_file.empty()) {
             // 位置参数作为输入文件
             args.input_file = arg;
@@ -276,6 +333,24 @@ int main(int argc, char* argv[]) {
     values.output_dir = output_dir;
     values.input_file = data_path;
     values.algorithm_name = AlgorithmName(args.algorithm);
+    // Machine capacity (override if specified)
+    if (args.machine_capacity > 0) {
+        values.machine_capacity = args.machine_capacity;
+    }
+    // RF algorithm parameters
+    values.rf_window = args.rf_window;
+    values.rf_step = args.rf_step;
+    values.rf_time = args.rf_time;
+    values.rf_retries = args.rf_retries;
+    // FO algorithm parameters
+    values.fo_window = args.fo_window;
+    values.fo_step = args.fo_step;
+    values.fo_rounds = args.fo_rounds;
+    values.fo_buffer = args.fo_buffer;
+    values.fo_time = args.fo_time;
+    // RR algorithm parameters
+    values.rr_capacity = args.rr_capacity;
+    values.rr_bonus = args.rr_bonus;
 
     clock_t case_start = clock();
 

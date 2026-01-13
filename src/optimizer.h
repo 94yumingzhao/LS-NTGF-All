@@ -243,6 +243,23 @@ struct AllValues {
     std::string input_file = "";
     std::string algorithm_name = "";
 
+    // RF算法参数
+    int rf_window = kRFWindowSize;        // RF窗口大小
+    int rf_step = kRFFixStep;             // RF固定步长
+    double rf_time = kRFSubproblemTimeLimit;  // RF子问题时限
+    int rf_retries = kRFMaxRetries;       // RF最大重试
+
+    // FO算法参数 (用于RFO)
+    int fo_window = kFOWindowSize;        // FO窗口大小
+    int fo_step = kFOStep;                // FO步长
+    int fo_rounds = kFOMaxRounds;         // FO最大轮数
+    int fo_buffer = kFOBoundaryBuffer;    // FO边界缓冲
+    double fo_time = kFOSubproblemTimeLimit;  // FO子问题时限
+
+    // RR算法参数
+    double rr_capacity = 1.2;             // RR产能放大系数
+    double rr_bonus = 50.0;               // RR连续启动奖励
+
     // 解的质量指标
     SolutionMetrics metrics;
 

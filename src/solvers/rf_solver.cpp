@@ -18,7 +18,7 @@ static void InitRFState(RFState& state, const AllValues& values) {
     state.period_fixed.assign(T, false);
     state.rollback_stack.clear();
     state.current_k = 0;
-    state.current_W = kRFWindowSize;
+    state.current_W = values.rf_window;  // 使用动态参数
     state.iterations = 0;
 }
 
@@ -283,7 +283,7 @@ static bool SolveRFSubproblem(
 
         // 配置并求解
         IloCplex cplex(model);
-        cplex.setParam(IloCplex::TiLim, kRFSubproblemTimeLimit);
+        cplex.setParam(IloCplex::TiLim, values.rf_time);  // 使用动态参数
         cplex.setParam(IloCplex::Threads, values.cplex_threads);
         cplex.setParam(IloCplex::Param::MIP::Strategy::File, 3);
         cplex.setParam(IloCplex::Param::WorkDir, values.cplex_workdir.c_str());
@@ -396,7 +396,7 @@ static void FixPeriods(int k, int S, RFState& state,
 }
 
 // 回滚最近一次固定
-static bool Rollback(RFState& state, int& k, int& W) {
+static bool Rollback(RFState& state, int& k, int& W, int rf_window) {
     if (state.rollback_stack.empty()) {
         LOG("[RF] 回滚栈为空，无法回滚");
         return false;
@@ -418,7 +418,7 @@ static bool Rollback(RFState& state, int& k, int& W) {
     }
 
     k = start_t;
-    W = kRFWindowSize + 2;
+    W = rf_window + 2;  // 使用动态参数
 
     LOG_FMT("[RF] 回滚至周期 %d，窗口扩大至 %d\n", k, W);
     return true;
@@ -461,7 +461,8 @@ static bool SolveRFFinal(RFState& state, AllValues& values, AllLists& lists,
 // RF 主求解函数
 void SolveRF(AllValues& values, AllLists& lists) {
     LOG("[RF] 启动 Relax-and-Fix 算法");
-    LOG_FMT("[RF] 参数: W=%d S=%d R=%d\n", kRFWindowSize, kRFFixStep, kRFMaxRetries);
+    LOG_FMT("[RF] 参数: W=%d S=%d R=%d T=%.1f\n",
+            values.rf_window, values.rf_step, values.rf_retries, values.rf_time);
 
     auto rf_start = chrono::steady_clock::now();
 
@@ -470,7 +471,7 @@ void SolveRF(AllValues& values, AllLists& lists) {
 
     int T = values.number_of_periods;
     int k = 0;
-    int W = kRFWindowSize;
+    int W = values.rf_window;  // 使用动态参数
     double total_cpu_time = 0.0;
 
     // RF metrics tracking
@@ -493,16 +494,16 @@ void SolveRF(AllValues& values, AllLists& lists) {
         total_cpu_time += iter_cpu_time;
 
         if (feasible) {
-            FixPeriods(k, kRFFixStep, state, y_solution, lambda_solution, T);
-            k += kRFFixStep;
-            W = kRFWindowSize;
+            FixPeriods(k, values.rf_step, state, y_solution, lambda_solution, T);
+            k += values.rf_step;
+            W = values.rf_window;
         } else {
             // 尝试扩展窗口
             bool resolved = false;
-            for (int r = 0; r < kRFMaxRetries && !resolved; r++) {
+            for (int r = 0; r < values.rf_retries && !resolved; r++) {
                 W++;
                 rf_window_expansions++;
-                LOG_FMT("[RF] 扩展窗口重试 %d/%d，W=%d\n", r + 1, kRFMaxRetries, W);
+                LOG_FMT("[RF] 扩展窗口重试 %d/%d，W=%d\n", r + 1, values.rf_retries, W);
                 iter_cpu_time = 0.0;
                 rf_subproblems++;
                 resolved = SolveRFSubproblem(k, W, state, values, lists,
@@ -512,12 +513,12 @@ void SolveRF(AllValues& values, AllLists& lists) {
             }
 
             if (resolved) {
-                FixPeriods(k, kRFFixStep, state, y_solution, lambda_solution, T);
-                k += kRFFixStep;
-                W = kRFWindowSize;
+                FixPeriods(k, values.rf_step, state, y_solution, lambda_solution, T);
+                k += values.rf_step;
+                W = values.rf_window;
             } else {
                 rf_rollbacks++;
-                if (!Rollback(state, k, W)) {
+                if (!Rollback(state, k, W, values.rf_window)) {
                     LOG("[RF] 无法继续，算法终止");
                     values.result_step1.objective = -1;
                     values.result_step1.runtime = -1;
